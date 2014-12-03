@@ -196,19 +196,26 @@ Game.prototype._broadcast = function(type, payload, skipClient)
  */
 Game.prototype.start = function()
 {
-    // We assume the creator is the person starting the game.
-    this._broadcast('game started', undefined, this.creator);
+    if(this._checkPlayers())
+    {
+        // We assume the creator is the person starting the game.
+        this._broadcast('game started', undefined, this.creator);
 
-    // Set the state to be 'new round'.
-    this.state = 'new round';
+        // Set the state to be 'new round'.
+        this.state = 'new round';
 
-    // We build our deck from the previously selected Cardcast decks.
-    this._buildDeck();
+        // We build our deck from the previously selected Cardcast decks.
+        this._buildDeck();
 
-    // Schedule the start of the new round for the next tick.
-    setImmediate(this._newRound.bind(this));
+        // Schedule the start of the new round for the next tick.
+        setImmediate(this._newRound.bind(this));
 
-    return Promise.resolve();
+        return Promise.resolve();
+    }
+    else
+    {
+        return Promise.reject(new Error("Not enough players."));
+    } // end if
 }; // end start
 
 /**

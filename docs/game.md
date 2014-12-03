@@ -7,7 +7,6 @@ complexity.)
 ## Definitions
 
 * **Call** - What CAH normally calls a 'black card'.
-
 * **Response** - What CAH normally calls a 'white card'.
 
 ## Game States
