@@ -57,7 +57,7 @@ That's it!
 
 ## Status
 
-Currently, we're working on our 1.0.0 version. Currently, nothing works, we're still in the middle of building
+Currently, we're working on our 1.0.0 version. That said, nothing works because we're still in the middle of building
 everything. Shortly, we should have the entire server done and unit tested, with the UI being the next thing we build.
 
 ## Contributing
