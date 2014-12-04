@@ -9,7 +9,7 @@ function NotImplementedError(api)
     this.name = "NotImplementedError";
     this.message = api + " not implemented.";
 } // end NotImplementedError
-InvalidStateError.prototype = Error.prototype;
+InvalidStateError.prototype = new Error();
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -28,7 +28,7 @@ function InvalidStateError(state, action)
         this.message = "Cannot perform action while in state '" + state + "'.";
     } // end if
 } // end InvalidStateError
-InvalidStateError.prototype = Error.prototype;
+InvalidStateError.prototype = new Error();
 
 //----------------------------------------------------------------------------------------------------------------------
 
