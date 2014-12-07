@@ -35,7 +35,7 @@ function Game(name, creator)
     this.players.push(creator);
 
     // The current list of spectators in the game
-    this.spectators = {};
+    this.spectators = [];
 
     // This is stored in a way that makes it easy to add/remove decks
     this.decks = {};
@@ -45,7 +45,7 @@ function Game(name, creator)
     this.responses = [];
 
     // Changed every round
-    this.currentJudge = 0;
+    this.currentJudge = undefined;
     this.currentCall = undefined;
     this.submittedResponses = [];
 } // end Game
@@ -69,7 +69,7 @@ Game.prototype._buildDeck = function()
 
 Game.prototype._checkResponses = function()
 {
-    var numPlayers = this.players.length;
+    var numPlayers = this.players.length - 1;
     return numPlayers == _.keys(this.submittedResponses).length;
 }; // end _checkResponses
 
@@ -161,11 +161,13 @@ Game.prototype._newRound = function()
 
 Game.prototype._drawCall = function()
 {
-    return Promise.resolve(drawRandom(self.calls));
+    return Promise.resolve(drawRandom(this.calls));
 }; // end _drawCall
 
 Game.prototype._broadcast = function(type, payload, skipClient)
 {
+    skipClient = skipClient || {};
+
     // Broadcast to players
     _.forEach(this.players, function(player)
     {
@@ -196,7 +198,7 @@ Game.prototype._broadcast = function(type, payload, skipClient)
  */
 Game.prototype.start = function()
 {
-    if(this._checkPlayers())
+    if(this._checkPlayers() && _.keys(this.decks).length > 0)
     {
         // We assume the creator is the person starting the game.
         this._broadcast('game started', undefined, this.creator);
@@ -211,6 +213,10 @@ Game.prototype.start = function()
         setImmediate(this._newRound.bind(this));
 
         return Promise.resolve();
+    }
+    else if(_.keys(this.decks).length == 0)
+    {
+        return Promise.reject(new Error("Cannot start a game without at least one deck."));
     }
     else
     {
@@ -366,7 +372,7 @@ Game.prototype.removeDeck = function(playCode)
  */
 Game.prototype.drawResponse = function()
 {
-    return Promise.resolve(drawRandom(self.responses));
+    return Promise.resolve(drawRandom(this.responses));
 }; // end drawResponse
 
 /**

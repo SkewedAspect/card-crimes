@@ -11,12 +11,13 @@ var PlayerClient = require('./player');
 
 //----------------------------------------------------------------------------------------------------------------------
 
-function RandomClient()
+function RandomClient(name)
 {
-    PlayerClient.call(this);
-
     // Set our socket as a plain EventEmitter.
-    this.socket = new EventEmitter();
+    PlayerClient.call(this, new EventEmitter());
+
+    // Manually set the name
+    this.name = name;
 } // end RandomClient
 
 util.inherits(RandomClient, PlayerClient);

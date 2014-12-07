@@ -13,6 +13,7 @@ var gameManager = require('../game/manager');
 function PlayerClient(socket)
 {
     this.id = uuid.v4();
+    this.name = 'Player-' + this.id;
     this.socket = socket;
 
     this._bindEventHandlers();
