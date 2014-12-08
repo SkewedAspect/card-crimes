@@ -12,8 +12,21 @@ var errors = require('../errors');
 
 //----------------------------------------------------------------------------------------------------------------------
 
-// The global list of games
+// The list of games
 var games = {};
+
+// Tracking of our paused timeouts
+var timeouts = {};
+
+//----------------------------------------------------------------------------------------------------------------------
+// Internal API
+//----------------------------------------------------------------------------------------------------------------------
+
+function deleteGame()
+{
+    //TODO: Need to make sure that game objects get correctly cleaned up, and we don't leak them.
+    delete games[gameID];
+} // end deleteGame
 
 //----------------------------------------------------------------------------------------------------------------------
 // Public API
@@ -59,6 +72,11 @@ function joinGame(gameID, player)
         return game.join(player)
             .then(function()
             {
+                if((gameID in timeouts) && game.enoughPlayers)
+                {
+                    clearTimeout(timeouts[gameID]);
+                } // end if
+
                 // Return the game object
                 return game;
             });
@@ -78,12 +96,29 @@ function joinGame(gameID, player)
  */
 function leaveGame(gameID, player)
 {
-    //TODO: Add a timeout so that in 12 hours, if the game is still paused, we end the game.
-    //TODO: Add a check so that if all players have left, we end the game.
+    var game = games[gameID];
 
-    if(gameID in games)
+    if(game)
     {
-        return games[gameID].leave(player);
+        return game.leave(player)
+            .then(function()
+            {
+                if(game.humanPlayers.length == 0)
+                {
+                    deleteGame();
+                }
+                else if(game.state == 'paused')
+                {
+                    timeouts[gameID] = setTimeout(function()
+                    {
+                        // Being paranoid, and checking that we're still in the correct state
+                        if(game.state == 'paused')
+                        {
+                            deleteGame();
+                        } // end if
+                    }, 43200000);
+                } // end if
+            });
     }
     else
     {

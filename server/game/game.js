@@ -50,6 +50,18 @@ function Game(name, creator)
     this.submittedResponses = [];
 } // end Game
 
+Game.prototype = {
+    get humanPlayers()
+    {
+        var PlayerClient = require('../clients/player');
+        return _.filter(this.players, function(player)
+        {
+            return player instanceof PlayerClient;
+        });
+    },
+    get enoughPlayers(){ return this.humanPlayers.length > 1; }
+};
+
 //----------------------------------------------------------------------------------------------------------------------
 // Internal API
 //----------------------------------------------------------------------------------------------------------------------
@@ -72,17 +84,6 @@ Game.prototype._checkResponses = function()
     var numPlayers = this.players.length - 1;
     return numPlayers == _.keys(this.submittedResponses).length;
 }; // end _checkResponses
-
-Game.prototype._checkPlayers = function()
-{
-    var PlayerClient = require('../clients/player');
-
-    // We need to filter out any AI players when doing this check.
-    return _.filter(this.players, function(player)
-        {
-            return player instanceof PlayerClient;
-        }).length > 1;
-}; // end checkPlayers
 
 Game.prototype._checkState = function(validStates, action)
 {
@@ -198,7 +199,7 @@ Game.prototype._broadcast = function(type, payload, skipClient)
  */
 Game.prototype.start = function()
 {
-    if(this._checkPlayers() && _.keys(this.decks).length > 0)
+    if(this.enoughPlayers && _.keys(this.decks).length > 0)
     {
         // We assume the creator is the person starting the game.
         this._broadcast('game started', undefined, this.creator);
@@ -269,7 +270,7 @@ Game.prototype.leave = function(client)
     this._broadcast('player left', { player: client.id }, client);
 
     // Check to see if we should pause the game
-    if(!this._checkPlayers() && this.state != 'initial')
+    if(!this.enoughPlayers && this.state != 'initial')
     {
         this.state = 'paused';
         this._broadcast('game paused');
