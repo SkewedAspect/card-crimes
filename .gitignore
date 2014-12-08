@@ -5,3 +5,6 @@
 
 # Node artifacts
 node_modules
+
+# Less artifacts
+client/css

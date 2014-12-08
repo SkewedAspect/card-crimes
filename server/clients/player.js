@@ -21,8 +21,24 @@ function PlayerClient(socket)
 
 PlayerClient.prototype._bindEventHandlers = function()
 {
+    this.socket.on('client details', this._handleDetails.bind(this));
+    this.socket.on('client rename', this._handleClientRename.bind(this));
     this.socket.on('list games', this._handleListGames.bind(this));
 }; // end _bindEventHandlers
+
+PlayerClient.prototype._handleDetails = function(respond)
+{
+    respond({
+        id: this.id,
+        name: this.name
+    });
+}; // end _handleDetails
+
+PlayerClient.prototype._handleClientRename = function(name, respond)
+{
+    this.name = name;
+    respond();
+}; // end _handleClientRename
 
 PlayerClient.prototype._handleListGames = function(respond)
 {

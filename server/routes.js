@@ -28,6 +28,9 @@ router.use(function(error, request, response, next)
     next(error);
 });
 
+// Host static files.
+router.use(express.static(path.resolve('./client')));
+
 // The fallback route, always serves index.html
 router.use(function(request, response)
 {
