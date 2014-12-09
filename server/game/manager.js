@@ -39,7 +39,7 @@ function deleteGame()
  */
 function listGames()
 {
-    return Promise.resolve(_.values(this.games));
+    return Promise.resolve(_.values(games));
 } // end listGames
 
 /**

@@ -5,7 +5,7 @@
 //----------------------------------------------------------------------------------------------------------------------
 
 var _ = require('lodash');
-var uuid = require('node-uuid');
+var shortId = require('shortid');
 var Promise = require('bluebird');
 
 var api = require('../api');
@@ -24,7 +24,8 @@ function drawRandom(deck)
 function Game(name, creator)
 {
     this.name = name;
-    this.id = uuid.v4();
+    this.id = shortId.generate();
+    this.created = new Date();
     this.state = 'initial';
     this.creator = creator;
 
@@ -398,7 +399,7 @@ Game.prototype.submitResponse = function(player, cardIDs)
 
             // Create a new Response object
             var response = {
-                id: uuid.v4(),
+                id: shortId.generate(),
                 player: player,
                 cards: cardIDs
             };
@@ -479,6 +480,7 @@ Game.prototype.toJSON = function()
         id: this.id,
         name: this.name,
         state: this.state,
+        created: this.created,
         players: this.players,
         spectators: this.spectators,
         currentCall: this.currentCall,

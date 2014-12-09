@@ -1,22 +1,28 @@
 // ---------------------------------------------------------------------------------------------------------------------
-// MainController
+// GameSummary
 //
-// @module main.js
+// @module summary.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function MainController($scope, gameSvc)
+function GameSummaryFactory()
 {
-    Object.defineProperty($scope, 'recentGames', {
-        get: function(){ return gameSvc.recentGames; }
-    });
-} // end MainController
+    function GameSummaryController($scope)
+    {
+    } // end GameSummaryController
+
+    return {
+        restrict: 'E',
+        scope: {
+            game: "="
+        },
+        templateUrl: "/game/summary/summary.html",
+        controller: ['$scope', GameSummaryController],
+        replace: true
+    };
+} // end GameSummaryFactory
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-angular.module('card-crimes.controllers').controller('MainController', [
-    '$scope',
-    'GameService',
-    MainController
-]);
+angular.module('card-crimes.directives').directive('gameSummary', [GameSummaryFactory]);
 
 // ---------------------------------------------------------------------------------------------------------------------

@@ -4,7 +4,7 @@
 // @module socket.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function SocketServiceFactory($q, io)
+function SocketServiceFactory(Promise, $timeout, io, _)
 {
     function SocketService()
     {
@@ -12,7 +12,7 @@ function SocketServiceFactory($q, io)
         this.socket = io();
 
         // A simple promise that resolves once we've connected.
-        this.initializedPromise = $q(function(resolve)
+        this.initializedPromise = Promise(function(resolve)
         {
             self.socket.on('connect', function()
             {
@@ -28,7 +28,34 @@ function SocketServiceFactory($q, io)
 
     SocketService.prototype.emit = function()
     {
-        this.socket.emit.apply(this.socket, arguments);
+        var self = this;
+        var args = _.toArray(arguments);
+
+        return Promise(function(resolve)
+        {
+            function callback()
+            {
+                var args = _.toArray(arguments);
+
+                if(args.length < 2)
+                {
+                    resolve(args[0]);
+                }
+                else
+                {
+                    resolve(args);
+                } // end if
+
+
+                // Schedule a digest for the next tick
+                $timeout(function(){});
+            } // end callback
+
+            // Add our custom callback
+            args.push(callback);
+
+            self.socket.emit.apply(self.socket, args);
+        });
     }; // end emit
 
     return new SocketService();
@@ -38,7 +65,9 @@ function SocketServiceFactory($q, io)
 
 angular.module('card-crimes.services').service('SocketService', [
     '$q',
+    '$timeout',
     'io',
+    'lodash',
     SocketServiceFactory
 ]);
 

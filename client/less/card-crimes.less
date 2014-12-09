@@ -21,4 +21,24 @@ body {
     cursor: pointer;
 }
 
+// Turn this into .fa, since we're not using .glyphicon, and the ui.bootstrap rating directive doesn't support
+//font-awesome.
+.glyphicon {
+    display: inline-block;
+    font: normal normal normal 14px/1 FontAwesome;
+    font-size: inherit;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+//----------------------------------------------------------------------------------------------------------------------
+// Additional styling
+//----------------------------------------------------------------------------------------------------------------------
+
+.blank {
+    color: #099;
+    text-decoration: underline;
+}
+
 //----------------------------------------------------------------------------------------------------------------------

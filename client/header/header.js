@@ -12,17 +12,8 @@ function SiteHeaderFactory(client)
         $scope.client = client;
         $scope.renaming = false;
 
-        // Catch the initialization, and make sure we run a digest cycle.
-        client.initializedPromise
-            .then(function()
-            {
-                // Schedules a digest cycle for the next tick.
-                $timeout(function(){}, 0);
-            });
-
         $scope.rename = function(name)
         {
-            console.log('renaming');
             client.rename(name)
                 .then(function()
                 {

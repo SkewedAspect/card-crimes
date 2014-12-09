@@ -8,6 +8,7 @@ angular.module('card-crimes', [
         'ngRoute',
         'ngCookies',
 
+        'lodash',
         'socket.io',
         'ui.bootstrap',
 
@@ -21,8 +22,9 @@ angular.module('card-crimes', [
 
         $routeProvider
             .when('/', { templateUrl: '/main/main.html', controller: 'MainController' })
-            .when('/game/new', { templateUrl: '/game.new.html', controller: 'NewGameController' })
-            .when('/game/:id', { templateUrl: '/game.html', controller: 'GameController' })
+            .when('/game', { templateUrl: '/game/browse/browse.html', controller: 'BrowseGameController' })
+            .when('/game/new', { templateUrl: '/game/new/new.html', controller: 'NewGameController' })
+            .when('/game/:id', { templateUrl: '/game/game.html', controller: 'GameController' })
             .otherwise({redirectTo: '/'});
     }]);
 

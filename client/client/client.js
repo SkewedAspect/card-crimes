@@ -4,7 +4,7 @@
 // @module client.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function ClientServiceFactory($q, $cookieStore, socket)
+function ClientServiceFactory($cookieStore, socket)
 {
     function ClientService()
     {
@@ -13,15 +13,12 @@ function ClientServiceFactory($q, $cookieStore, socket)
             .then(function()
             {
                 // Get the player id, and current name.
-                return $q(function(resolve)
-                {
-                    socket.emit('client details', function(payload)
+                return socket.emit('client details')
+                    .then(function(payload)
                     {
                         self.id = payload.id;
                         self.name = payload.name;
-                        resolve();
                     });
-                });
             })
             .then(function()
             {
@@ -39,15 +36,12 @@ function ClientServiceFactory($q, $cookieStore, socket)
     ClientService.prototype.rename = function(name)
     {
         var self = this;
-        return $q(function(resolve)
-        {
-            socket.emit('client rename', name, function()
+        return socket.emit('client rename', name)
+            .then(function()
             {
                 self.name = name;
                 $cookieStore.put('playerName', name);
-                resolve();
             });
-        });
     }; // end rename
 
     return new ClientService();
@@ -56,7 +50,6 @@ function ClientServiceFactory($q, $cookieStore, socket)
 // ---------------------------------------------------------------------------------------------------------------------
 
 angular.module('card-crimes.services').service('ClientService', [
-    '$q',
     '$cookieStore',
     'SocketService',
     ClientServiceFactory

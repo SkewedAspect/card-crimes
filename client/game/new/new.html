@@ -1,0 +1,41 @@
+<div class="container">
+    <div collapse="!!game">
+        <h2 class="text-center">Name your game</h2>
+        <form role="form">
+            <div class="col-sm-6 col-sm-offset-3">
+                <div class="input-group">
+                    <input type="text" placeholder="Game Name" class="form-control" ng-model="gameName">
+                    <span class="input-group-btn">
+                        <!--button type="submit" class="btn btn-success" ng-click="createGame(gameName)" title="New Game">
+                            <i class="fa fa-plus"></i> <span class="hidden-xs">New Game</span>
+                        </button-->
+                        <button type="submit" class="btn btn-success" ng-click="game = { name: gameName }" title="New Game">
+                            <i class="fa fa-plus"></i> <span class="hidden-xs">New Game</span>
+                        </button>
+                    </span>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div collapse="!game">
+        <h2 class="text-center">Pick some decks</h2>
+        <form class="row" role="form">
+            <div class="col-sm-6 col-sm-offset-3">
+                <div class="input-group">
+                    <input type="text" placeholder="Deck Name" class="form-control" ng-model="query">
+                    <span class="input-group-btn">
+                        <button type="submit" class="btn btn-primary" ng-click="searchDecks(query)" title="Search">
+                            <i class="fa fa-search"></i> <span class="hidden-xs">Search</span>
+                        </button>
+                    </span>
+                </div>
+            </div>
+        </form>
+        <br/>
+        <div class="row">
+            <div class="col-md-3" ng-repeat="deck in decks.data">
+                <deck-summary deck="deck"></deck-summary>
+            </div>
+        </div>
+    </div>
+</div>

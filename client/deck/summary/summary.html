@@ -1,0 +1,8 @@
+<div class="panel panel-default deck-summary">
+    <div class="panel-body">
+        <h4>{{ deck.name }}</h4>
+        <rating ng-model="deck.rating" max="5" readonly="true" state-on="'fa-star'" state-off="'fa-star-o'"></rating>
+        <div class="code text-danger">{{ deck.code }}</div>
+        <div class="author">{{ deck.author.username }}</div>
+    </div>
+</div>

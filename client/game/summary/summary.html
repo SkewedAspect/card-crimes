@@ -1,0 +1,27 @@
+<div class="panel panel-default game-widget">
+    <div class="panel-heading">
+        <span class="pull-right">
+            <span title="Players">{{ game.players.length }}</span> /
+            <span title="Spectators">{{ game.spectators.length }}</span>
+        </span>
+        <a href="/game/{{ game.id }}">
+            <h3 class="panel-title">
+                {{ game.name }}
+            </h3>
+        </a>
+    </div>
+    <div class="panel-body">
+        Decks:
+        <span ng-repeat="(code, deck) in game.decks">
+            <small>
+                <i>{{ deck.name }}</i>
+                <span ng-if="!$last">,</span>
+            </small>
+        </span>
+        <span ng-hide="_.values(game.decks).length > 0"><small><i>No decks selected, yet.</i></small></span>
+    </div>
+    <div class="btn-group game-buttons" role="group">
+        <a class="btn btn-primary" role="button"><i class="fa fa-share"></i> Join</a>
+        <a class="btn btn-default" role="button"><i class="fa fa-eye"></i> Spectate</a>
+    </div>
+</div>

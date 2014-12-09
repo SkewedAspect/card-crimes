@@ -1,22 +1,22 @@
 // ---------------------------------------------------------------------------------------------------------------------
-// MainController
+// BrowseGameController
 //
-// @module main.js
+// @module browse.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function MainController($scope, gameSvc)
+function BrowseGameController($scope, gameSvc)
 {
-    Object.defineProperty($scope, 'recentGames', {
-        get: function(){ return gameSvc.recentGames; }
+    Object.defineProperty($scope, 'games', {
+        get: function(){ return gameSvc.games; }
     });
-} // end MainController
+} // end BrowseGameController
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-angular.module('card-crimes.controllers').controller('MainController', [
+angular.module('card-crimes.controllers').controller('BrowseGameController', [
     '$scope',
     'GameService',
-    MainController
+    BrowseGameController
 ]);
 
 // ---------------------------------------------------------------------------------------------------------------------
