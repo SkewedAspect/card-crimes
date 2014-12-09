@@ -1,8 +1,20 @@
 <div class="panel panel-default deck-summary">
     <div class="panel-body">
+        <a href="http://cardcastgame.com/browse/deck/{{ deck.code }}" class="view-link" title="View on Cardcast"><i class="fa fa-eye"></i></a>
         <h4>{{ deck.name }}</h4>
-        <rating ng-model="deck.rating" max="5" readonly="true" state-on="'fa-star'" state-off="'fa-star-o'"></rating>
-        <div class="code text-danger">{{ deck.code }}</div>
+        <div class="count">
+            <span class="badge call">{{ deck.call_count }}</span>
+            <span class="badge response">{{ deck.response_count }}</span>
+        </div>
+        <!--rating ng-model="deck.rating" max="5" readonly="true" state-on="'fa-star'" state-off="'fa-star-o'"></rating-->
+        <div class="rating">
+            <i class="fa" ng-class="{ 'fa-star': rating[0] == 'full', 'fa-star-half-o': rating[0] == 'half', 'fa-star-o': rating[0] == 'empty' }"></i>
+            <i class="fa" ng-class="{ 'fa-star': rating[1] == 'full', 'fa-star-half-o': rating[1] == 'half', 'fa-star-o': rating[1] == 'empty' }"></i>
+            <i class="fa" ng-class="{ 'fa-star': rating[2] == 'full', 'fa-star-half-o': rating[2] == 'half', 'fa-star-o': rating[2] == 'empty' }"></i>
+            <i class="fa" ng-class="{ 'fa-star': rating[3] == 'full', 'fa-star-half-o': rating[3] == 'half', 'fa-star-o': rating[3] == 'empty' }"></i>
+            <i class="fa" ng-class="{ 'fa-star': rating[4] == 'full', 'fa-star-half-o': rating[4] == 'half', 'fa-star-o': rating[4] == 'empty' }"></i>
+        </div>
         <div class="author">{{ deck.author.username }}</div>
+        <div class="code text-danger">{{ deck.code }}</div>
     </div>
 </div>

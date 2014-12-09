@@ -8,7 +8,25 @@
     min-height: 120px;
 
     h4 {
-        margin: 0;
+        margin-top: 0;
+        margin-bottom: 0;
+        margin-right: 15px;
+    }
+
+    .view-link {
+        position: absolute;
+        top: 5px;
+        right: 10px;
+    }
+
+    .rating {
+        i.fa {
+            margin-right: -2px;
+
+            &:first-child {
+                margin-right: 0;
+            }
+        }
     }
 
     .author {
@@ -16,6 +34,24 @@
         bottom: 15px;
         left: 15px;
         font-size: .95em;
+    }
+
+    .count {
+        float: right;
+
+        .badge.call {
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            margin-right: -2px;
+            background-color: #111;
+        }
+
+        .badge.response {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+            margin-left: -2px;
+            background-color: #099;
+        }
     }
 
     .code {
