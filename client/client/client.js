@@ -31,6 +31,16 @@ function ClientServiceFactory($cookieStore, socket)
                     return self.rename(playerName);
                 } // end if
             });
+
+        socket.on('next round', function(payload)
+        {
+            console.log('next round:', payload);
+        });
+
+        socket.on('player joined', function(payload)
+        {
+            console.log('player joined:', payload);
+        });
     } // end ClientService
 
     ClientService.prototype.rename = function(name)

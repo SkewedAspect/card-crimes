@@ -14,11 +14,10 @@
         Decks:
         <span ng-repeat="(code, deck) in game.decks">
             <small>
-                <i>{{ deck.name }}</i>
-                <span ng-if="!$last">,</span>
+                <i>{{ deck.name }}</i><span ng-if="!$last">,</span>
             </small>
         </span>
-        <span ng-hide="_.values(game.decks).length > 0"><small><i>No decks selected, yet.</i></small></span>
+        <span ng-hide="decksNotEmpty()"><small><i>No decks selected, yet.</i></small></span>
     </div>
     <div class="btn-group game-buttons" role="group">
         <a class="btn btn-primary" role="button"><i class="fa fa-share"></i> Join</a>

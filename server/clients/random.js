@@ -18,6 +18,9 @@ function RandomClient(name)
 
     // Manually set the name
     this.name = name;
+
+    // Set our type to 'bot', so the client has some clue who's a bot, and who isn't.
+    this.type = 'bot';
 } // end RandomClient
 
 util.inherits(RandomClient, PlayerClient);

@@ -1,6 +1,6 @@
-<div class="panel panel-default deck-summary">
+<div class="panel deck-summary" ng-class="{ 'panel-primary': selected, 'panel-default': !selected }" ng-click="select()">
     <div class="panel-body">
-        <a href="http://cardcastgame.com/browse/deck/{{ deck.code }}" class="view-link" title="View on Cardcast"><i class="fa fa-eye"></i></a>
+        <a href="http://cardcastgame.com/browse/deck/{{ deck.code }}" class="view-link close" title="View on Cardcast"><i class="fa fa-external-link"></i></a>
         <h4>{{ deck.name }}</h4>
         <div class="count">
             <span class="badge call">{{ deck.call_count }}</span>

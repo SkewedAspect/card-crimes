@@ -4,11 +4,18 @@
 // @module summary
 // ---------------------------------------------------------------------------------------------------------------------
 
-function DeckSummaryFactory(_)
+function DeckSummaryFactory(_, gameSvc)
 {
     function DeckSummaryController($scope)
     {
         $scope.rating = ['empty', 'empty', 'empty', 'empty', 'empty'];
+
+        Object.defineProperty($scope, 'selected', {
+            get: function()
+            {
+                    return $scope.deck.code in (($scope.game || {}).decks || {});
+            }
+        });
 
         // Calculate rating
         var rating = parseFloat($scope.deck.rating);
@@ -22,7 +29,7 @@ function DeckSummaryFactory(_)
         });
 
         // Fill in the fractional rating
-        if(fractionalRating > .3 && fractionalRating <=.7)
+        if(fractionalRating >= .3 && fractionalRating <=.7)
         {
             $scope.rating[wholeRating] = 'half';
         }
@@ -30,12 +37,29 @@ function DeckSummaryFactory(_)
         {
             $scope.rating[wholeRating] = 'full';
         } // end if
+
+        // -------------------------------------------------------------------------------------------------------------
+
+        $scope.select = function()
+        {
+            if($scope.selected)
+            {
+                // Remove the deck with the game service
+                gameSvc.removeDeck($scope.deck);
+            }
+            else
+            {
+                // Select the deck with the game service.
+                gameSvc.addDeck($scope.deck);
+            } // end if
+        }; // end select
     } // end DeckSummaryController
 
     return {
         restrict: 'E',
         scope: {
-            deck: '='
+            deck: '=',
+            game: '='
         },
         templateUrl: "/deck/summary/summary.html",
         controller: ['$scope', DeckSummaryController],
@@ -47,6 +71,7 @@ function DeckSummaryFactory(_)
 
 angular.module('card-crimes.directives').directive('deckSummary', [
     'lodash',
+    'GameService',
     DeckSummaryFactory
 ]);
 

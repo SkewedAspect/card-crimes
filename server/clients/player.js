@@ -22,11 +22,21 @@ function PlayerClient(socket)
 
 PlayerClient.prototype._bindEventHandlers = function()
 {
+    // Client API
     this.socket.on('client details', this._handleDetails.bind(this));
     this.socket.on('client rename', this._handleClientRename.bind(this));
+
+    // Game API
     this.socket.on('list games', this._handleListGames.bind(this));
     this.socket.on('new game', this._handleCreateGame.bind(this));
+    this.socket.on('start game', this._handleStartGame.bind(this));
+    this.socket.on('add bot', this._handleAddBot.bind(this));
+    this.socket.on('remove bot', this._handleAddBot.bind(this));
+
+    // Deck API
     this.socket.on('search decks', this._handleSearchDeck.bind(this));
+    this.socket.on('add deck', this._handleAddDeck.bind(this));
+    this.socket.on('remove deck', this._handleRemoveDeck.bind(this));
 }; // end _bindEventHandlers
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -64,8 +74,6 @@ PlayerClient.prototype._handleCreateGame = function(name, respond)
     gameManager.newGame(name, this)
         .then(function(game)
         {
-            console.log("made game!", JSON.stringify(game));
-
             // Store this game as ours
             self.game = game;
 
@@ -75,9 +83,9 @@ PlayerClient.prototype._handleCreateGame = function(name, respond)
         });
 }; // end _handleCreateName
 
-PlayerClient.prototype._handleSearchDeck = function(query, respond)
+PlayerClient.prototype._handleSearchDeck = function(query, offset, respond)
 {
-    api.search(query)
+    api.search(query, offset)
         .then(function(decks)
         {
             respond({
@@ -86,13 +94,95 @@ PlayerClient.prototype._handleSearchDeck = function(query, respond)
         });
 }; // end _handleSearchDeck
 
+PlayerClient.prototype._handleAddDeck = function(code, respond)
+{
+    this.game.addDeck(code)
+        .then(function(deck)
+        {
+            respond({
+                confirm: true,
+                deck: {
+                    name: deck.name,
+                    code: deck.code,
+                    rating: deck.rating,
+                    author: {
+                        id: deck.author.id,
+                        username: deck.author.username
+                    },
+                    call_count: deck.call_count,
+                    response_count: deck.response_count
+                }
+            });
+        });
+}; // end _handleAddDeck
+
+PlayerClient.prototype._handleRemoveDeck = function(code, respond)
+{
+    this.game.removeDeck(code)
+        .then(function()
+        {
+            respond({
+                confirm: true
+            });
+        });
+}; // end _handleRemoveDeck
+
+PlayerClient.prototype._handleAddBot = function(name, respond)
+{
+    this.game.addRandomPlayer(name)
+        .then(function(bot)
+        {
+            respond({
+                confirm: true,
+                bot: bot
+            });
+        });
+}; // end _handleAddBot
+
+PlayerClient.prototype._handleRemoveBot = function(id, respond)
+{
+    this.game.removeRandomPlayer(id)
+        .then(function()
+        {
+            respond({
+                confirm: true
+            });
+        })
+        .catch(function(error)
+        {
+            respond({
+                confirm: false,
+                message: error.message
+            });
+        });
+}; // end _handleRemoveBot
+
+PlayerClient.prototype._handleStartGame = function(respond)
+{
+    this.game.start()
+        .then(function()
+        {
+            respond({
+                confirm: true
+            });
+        })
+        .catch(function(error)
+        {
+            respond({
+                confirm: false,
+                message: error.message
+            });
+        });
+}; // end _handleStartGame
+
 //----------------------------------------------------------------------------------------------------------------------
 
 PlayerClient.prototype.toJSON = function()
 {
     return {
         id: this.id,
-        name: this.name
+        name: this.name,
+        type: this.type
     }
 }; // end toJSON
 

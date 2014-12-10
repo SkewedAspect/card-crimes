@@ -4,10 +4,14 @@
 // @module summary.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GameSummaryFactory()
+function GameSummaryFactory(_)
 {
     function GameSummaryController($scope)
     {
+        $scope.decksNotEmpty = function()
+        {
+            return !_.isEmpty($scope.game.decks);
+        }; // end decksNotEmpty
     } // end GameSummaryController
 
     return {
@@ -23,6 +27,9 @@ function GameSummaryFactory()
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-angular.module('card-crimes.directives').directive('gameSummary', [GameSummaryFactory]);
+angular.module('card-crimes.directives').directive('gameSummary', [
+    'lodash',
+    GameSummaryFactory
+]);
 
 // ---------------------------------------------------------------------------------------------------------------------

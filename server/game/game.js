@@ -311,7 +311,7 @@ Game.prototype.spectatorLeave = function(client)
 /**
  * Add a random AI player to the game. Random players will generate their responses at random, and submit them.
  *
- * @param {string} [name] - The name of the Random player.
+ * @param {string} [name] - The name of the Random player to add.
  * @returns {Promise} Returns a promise that is always resolved.
  */
 Game.prototype.addRandomPlayer = function(name)
@@ -328,8 +328,32 @@ Game.prototype.addRandomPlayer = function(name)
     // Inform players that a 'new player' has joined
     this._broadcast('player joined', { player: client }, client);
 
-    return Promise.resolve();
+    return Promise.resolve(client);
 }; // end addRandomPlayer
+
+/**
+ * Remove a random AI player from the game.
+ *
+ * @param {string} id - The id of the Random player to remove.
+ * @returns {Promise} Returns a promise that is always resolved.
+ */
+Game.prototype.removeRandomPlayer =  function(id)
+{
+    var client = _.find(this.players, { id: id });
+
+    if(client instanceof RandomClient)
+    {
+        this._broadcast('player left', { player: id }, client);
+
+        _.remove(this.players, {id: id});
+
+        return Promise.resolve();
+    }
+    else
+    {
+        return Promise.reject(new Error("Player with id '" + id + "' is not a bot!"));
+    } // end if
+}; // end removeRandomPlayer
 
 /**
  * Adds a deck to the game. This is only usable while the game is in the `'initial'` state.
@@ -347,6 +371,7 @@ Game.prototype.addDeck = function(playCode)
                 .then(function(deck)
                 {
                     self.decks[playCode] = deck;
+                    return deck;
                 });
         });
 }; // end addDeck
@@ -476,9 +501,24 @@ Game.prototype.selectResponse = function(responseID)
  */
 Game.prototype.toJSON = function()
 {
+    var decks = _.transform(this.decks, function(result, deck, code)
+    {
+        result[code] = {
+            name: deck.name,
+            code: deck.code,
+            rating: deck.rating,
+            author: {
+                id: deck.author.id,
+                username: deck.author.username
+            },
+            call_count: deck.call_count,
+            response_count: deck.response_count
+        }
+    });
     return {
         id: this.id,
         name: this.name,
+        decks: decks,
         state: this.state,
         created: this.created,
         players: this.players,

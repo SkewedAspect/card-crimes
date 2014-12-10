@@ -1,24 +1,40 @@
-<div class="container">
-    <div collapse="!!game">
-        <h2 class="text-center">Name your game</h2>
+<div class="container new-game">
+
+    <!-- Step 1: Name the Game -->
+    <div collapse="step != 1">
+        <h2 class="text-center">Name the Game</h2>
         <form role="form">
             <div class="col-sm-6 col-sm-offset-3">
                 <div class="input-group">
                     <input type="text" placeholder="Game Name" class="form-control" ng-model="gameName">
                     <span class="input-group-btn">
-                        <!--button type="submit" class="btn btn-success" ng-click="createGame(gameName)" title="New Game">
-                            <i class="fa fa-plus"></i> <span class="hidden-xs">New Game</span>
-                        </button-->
-                        <button type="submit" class="btn btn-success" ng-click="game = { name: gameName }" title="New Game">
+                        <button type="submit" class="btn btn-success" ng-click="createGame(gameName)" title="New Game">
                             <i class="fa fa-plus"></i> <span class="hidden-xs">New Game</span>
                         </button>
+                        <!--button type="submit" class="btn btn-success" ng-click="game = { name: gameName }" title="New Game">
+                            <i class="fa fa-plus"></i> <span class="hidden-xs">New Game</span>
+                        </button-->
                     </span>
                 </div>
             </div>
         </form>
     </div>
-    <div collapse="!game">
-        <h2 class="text-center">Pick some decks</h2>
+
+    <!-- Step 2: Select Decks -->
+    <div collapse="step != 2">
+        <h2 class="text-center">Select Decks</h2>
+        <hr/>
+        <h4 class="current-decks">
+            Current Decks:
+            <span ng-repeat="deck in gameDecks">
+                <span class="label label-primary">
+                    {{ deck.name }}
+                    <span class="remove-btn" ng-click="removeDeck(deck)"><i class="fa fa-times"></i></span>
+                </span>
+                &nbsp;
+            </span>
+        </h4>
+        <hr/>
         <form class="row" role="form">
             <div class="col-sm-6 col-sm-offset-3">
                 <div class="input-group">
@@ -34,8 +50,57 @@
         <br/>
         <div class="row">
             <div class="col-md-3" ng-repeat="deck in decks.data">
-                <deck-summary deck="deck"></deck-summary>
+                <deck-summary deck="deck" game="game"></deck-summary>
             </div>
         </div>
+        <div class="page-footer">
+            <div class="page-count">
+                <span>{{ currentPage }} / {{ totalPages }}</span>
+            </div>
+            <pager total-items="decks.count" items-per-page="20" ng-model="currentPage"></pager>
+        </div>
+        <hr>
+        <button class="btn btn-success pull-right" ng-disabled="decksEmpty()" ng-click="nextStep()">
+            Next Step <i class="fa fa-arrow-right"></i>
+        </button>
+    </div>
+
+    <!-- Step 3: Add Bots -->
+    <div collapse="step != 3">
+        <h2 class="text-center">Add Bots</h2>
+        <form class="row" role="form">
+            <div class="col-sm-6 col-sm-offset-3">
+                <div class="input-group">
+                    <input type="text" placeholder="Rando Cardrissian" class="form-control" ng-model="botName">
+                    <span class="input-group-btn">
+                        <button type="submit" class="btn btn-success" ng-click="addBot(botName)" title="Add Bot">
+                            <i class="fa fa-plus"></i> <span class="hidden-xs">Add Bot</span>
+                        </button>
+                    </span>
+                </div>
+            </div>
+        </form>
+        <br/>
+
+        <div class="row">
+            <div class="col-sm-6 col-sm-offset-3">
+                <ul class="list-group">
+                    <li class="list-group-item" ng-repeat="bot in bots">
+                        <button type="button" class="close" style="margin-top: -2px" ng-click="removeBot(bot.id)">
+                            <span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+                        </button>
+                        {{ bot.name }}
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <hr>
+        <button class="btn btn-default pull-left" ng-click="prevStep()">
+            <i class="fa fa-arrow-left"></i> Previous Step
+        </button>
+        <button class="btn btn-primary pull-right" ng-click="startGame()">
+            <i class="fa fa-bolt"></i> Start Game
+        </button>
     </div>
 </div>

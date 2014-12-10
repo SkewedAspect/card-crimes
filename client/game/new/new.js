@@ -4,28 +4,114 @@
 // @module new.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function NewGameController($scope, socket, gameSvc)
+function NewGameController($scope, $location, _, socket, gameSvc)
 {
+    $scope.step = 1;
     $scope.decks = {};
+    $scope.currentPage = 1;
+
+    Object.defineProperties($scope, {
+        totalPages: {
+            get: function()
+            {
+                return Math.ceil($scope.decks.count / 20) || 0;
+            }
+        },
+        bots: {
+            get: function()
+            {
+                return _.filter(($scope.game || {}).players, { type: 'bot' });
+            }
+        },
+        gameDecks: {
+            get: function()
+            {
+                return _.sortBy(_.values(($scope.game || {}).decks), 'name');
+            }
+        },
+        game: {
+            get: function(){ return gameSvc.currentGame; }
+        }
+    });
+
+    // -----------------------------------------------------------------------------------------------------------------
+
+    $scope.$watch('currentPage', function()
+    {
+        var offset = ($scope.currentPage - 1) * 20;
+        $scope.searchDecks($scope.query, offset);
+    });
+
+    // -----------------------------------------------------------------------------------------------------------------
 
     $scope.createGame = function(name)
     {
         gameSvc.createGame(name)
-            .then(function(game)
+            .then(function()
             {
-                $scope.game = game;
+                $scope.nextStep();
             });
     }; // end createGame
 
-    $scope.searchDecks = function(query)
+    $scope.searchDecks = function(query, offset)
     {
-        socket.emit('search decks', query)
+        offset = offset || 0;
+
+        // Store the query for pagination later
+        $scope.query = query;
+
+        // Search for the decks requested
+        socket.emit('search decks', query, offset)
             .then(function(payload)
             {
-                console.log('decks:', payload.decks);
                 $scope.decks = payload.decks;
             });
     }; // end searchDecks
+
+    $scope.removeDeck = function(deck)
+    {
+        gameSvc.removeDeck(deck);
+    }; // end removeDeck
+
+    $scope.decksEmpty = function()
+    {
+        return _.isEmpty(($scope.game || {}).decks);
+    }; // end decksNotEmpty
+
+    $scope.startGame = function()
+    {
+        gameSvc.startGame()
+            .then(function()
+            {
+                $location.path('/game/' + $scope.game.id);
+            });
+    }; // end startGame
+
+    $scope.addBot = function(name)
+    {
+        gameSvc.addBot(name)
+            .then(function()
+            {
+                $scope.botName = "";
+            });
+    }; // end addBot
+
+    $scope.removeBot = function(id)
+    {
+        gameSvc.removeBot(id);
+    }; // end removeBot
+
+    $scope.nextStep = function()
+    {
+        $scope.step += 1;
+    }; // end nextStep;
+
+    $scope.prevStep = function()
+    {
+        $scope.step = Math.max(1, $scope.step - 1);
+    }; // end nextStep;
+
+    // -----------------------------------------------------------------------------------------------------------------
 
     // Start off with a call to searchDecks
     $scope.searchDecks();
@@ -35,6 +121,8 @@ function NewGameController($scope, socket, gameSvc)
 
 angular.module('card-crimes.controllers').controller('NewGameController', [
     '$scope',
+    '$location',
+    'lodash',
     'SocketService',
     'GameService',
     NewGameController
