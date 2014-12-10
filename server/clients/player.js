@@ -22,6 +22,9 @@ function PlayerClient(socket)
 
 PlayerClient.prototype._bindEventHandlers = function()
 {
+    // Socket.io
+    this.socket.on('disconnect', this._handleDisconnect.bind(this));
+
     // Client API
     this.socket.on('client details', this._handleDetails.bind(this));
     this.socket.on('client rename', this._handleClientRename.bind(this));
@@ -42,6 +45,14 @@ PlayerClient.prototype._bindEventHandlers = function()
 //----------------------------------------------------------------------------------------------------------------------
 // Event Handlers
 //----------------------------------------------------------------------------------------------------------------------
+
+PlayerClient.prototype._handleDisconnect = function()
+{
+    if(this.game)
+    {
+        gameManager.leaveGame(this.game.id, this);
+    } // end if
+}; // end _handleDisconnect
 
 PlayerClient.prototype._handleDetails = function(respond)
 {
