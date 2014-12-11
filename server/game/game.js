@@ -254,6 +254,7 @@ Game.prototype.rename = function(name)
 Game.prototype.join = function(client)
 {
     this.players.push(client);
+    this.players = _.uniq(this.players, 'id');
     this._broadcast('player joined', { player: client }, client);
 
     return Promise.resolve();
@@ -289,6 +290,7 @@ Game.prototype.leave = function(client)
 Game.prototype.spectatorJoin = function(client)
 {
     this.spectators.push(client);
+    this.spectators = _.uniq(this.spectators, 'id');
     this._broadcast('spectator joined', { spectator: client }, client);
 
     return Promise.resolve();

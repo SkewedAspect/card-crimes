@@ -43,6 +43,20 @@ function ClientServiceFactory($cookieStore, socket)
         });
     } // end ClientService
 
+    // -----------------------------------------------------------------------------------------------------------------
+
+    ClientService.prototype._bindEventHandlers = function()
+    {
+        this.socket.on('player joined', this.handlePlayerJoined.bind(this));
+        this.socket.on('player left', this.handlePlayerLeft.bind(this));
+        this.socket.on('spectator joined', this.handleSpectatorJoined.bind(this));
+        this.socket.on('spectator left', this.handleSpectatorLeft.bind(this));
+    }; // end _bindEventHandlers
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Public API
+    // -----------------------------------------------------------------------------------------------------------------
+
     ClientService.prototype.rename = function(name)
     {
         var self = this;
@@ -53,6 +67,30 @@ function ClientServiceFactory($cookieStore, socket)
                 $cookieStore.put('playerName', name);
             });
     }; // end rename
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Event Handlers
+    // -----------------------------------------------------------------------------------------------------------------
+
+    ClientService.prototype.handlePlayerJoined = function()
+    {
+
+    }; // end handlePlayerJoined
+
+    ClientService.prototype.handlePlayerLeft = function()
+    {
+
+    }; // end handlePlayerLeft
+
+    ClientService.prototype.handleSpectatorJoined = function()
+    {
+
+    }; // end handleSpectatorJoined
+
+    ClientService.prototype.handleSpectatorLeft = function()
+    {
+
+    }; // end handleSpectatorLeft
 
     return new ClientService();
 } // end ClientServiceFactory

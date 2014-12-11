@@ -9,6 +9,8 @@ var api = require('../api');
 
 var gameManager = require('../game/manager');
 
+var logger = require('omega-logger').loggerFor(module);
+
 //----------------------------------------------------------------------------------------------------------------------
 
 function PlayerClient(socket)
@@ -34,7 +36,9 @@ PlayerClient.prototype._bindEventHandlers = function()
     this.socket.on('new game', this._handleCreateGame.bind(this));
     this.socket.on('start game', this._handleStartGame.bind(this));
     this.socket.on('add bot', this._handleAddBot.bind(this));
-    this.socket.on('remove bot', this._handleAddBot.bind(this));
+    this.socket.on('remove bot', this._handleRemoveBot.bind(this));
+    this.socket.on('join game', this._handleJoinGame.bind(this));
+    this.socket.on('leave game', this._handleLeaveGame.bind(this));
 
     // Deck API
     this.socket.on('search decks', this._handleSearchDeck.bind(this));
@@ -57,6 +61,7 @@ PlayerClient.prototype._handleDisconnect = function()
 PlayerClient.prototype._handleDetails = function(respond)
 {
     respond({
+        confirm: true,
         id: this.id,
         name: this.name
     });
@@ -65,7 +70,9 @@ PlayerClient.prototype._handleDetails = function(respond)
 PlayerClient.prototype._handleClientRename = function(name, respond)
 {
     this.name = name;
-    respond();
+    respond({
+        confirm: true
+    });
 }; // end _handleClientRename
 
 PlayerClient.prototype._handleListGames = function(respond)
@@ -74,6 +81,7 @@ PlayerClient.prototype._handleListGames = function(respond)
         .then(function(games)
         {
             respond({
+                confirm: true,
                 games: games
             });
         });
@@ -89,6 +97,7 @@ PlayerClient.prototype._handleCreateGame = function(name, respond)
             self.game = game;
 
             respond({
+                confirm: true,
                 game: game
             });
         });
@@ -100,6 +109,7 @@ PlayerClient.prototype._handleSearchDeck = function(query, offset, respond)
         .then(function(decks)
         {
             respond({
+                confirm: true,
                 decks: decks
             });
         });
@@ -185,6 +195,52 @@ PlayerClient.prototype._handleStartGame = function(respond)
             });
         });
 }; // end _handleStartGame
+
+PlayerClient.prototype._handleJoinGame = function(isPlayer, gameID, respond)
+{
+    var self = this;
+    var joinPromise;
+
+    if(isPlayer)
+    {
+        joinPromise = gameManager.joinGame(gameID, this);
+    }
+    else
+    {
+        joinPromise = gameManager.spectatorJoinGame(gameID, this);
+    } // end if
+
+    // Once we've joined, inform the client.
+    joinPromise.then(function(game)
+    {
+        self.game = game;
+
+        respond({
+            confirm: true,
+            gameID: gameID
+        });
+    });
+}; // end _handleJoinGame
+
+PlayerClient.prototype._handleLeaveGame = function(gameID, respond)
+{
+    gameManager.leaveGame(gameID, this)
+        .then(function()
+        {
+            respond({
+                confirm: true
+            });
+        })
+        .catch(function(error)
+        {
+            logger.error("Error while leaving game:\n%s", error.stack || error.message);
+
+            respond({
+                confirm: false,
+                message: error.message
+            });
+        });
+}; // end _handleLeaveGame
 
 //----------------------------------------------------------------------------------------------------------------------
 

@@ -1,1 +1,4 @@
-<h1>Game Page!</h1>
+<h1>{{ game.name }}</h1>
+
+<p ng-hide="isPlayer">You are a spectator.</p>
+<p ng-show="isPlayer">You are a player.</p>

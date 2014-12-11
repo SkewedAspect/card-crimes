@@ -20,7 +20,7 @@
         <span ng-hide="decksNotEmpty()"><small><i>No decks selected, yet.</i></small></span>
     </div>
     <div class="btn-group game-buttons" role="group">
-        <a class="btn btn-primary" role="button"><i class="fa fa-share"></i> Join</a>
-        <a class="btn btn-default" role="button"><i class="fa fa-eye"></i> Spectate</a>
+        <a class="btn btn-primary" role="button" ng-click="join(true)"><i class="fa fa-share"></i> Join</a>
+        <a class="btn btn-default" role="button" ng-click="join()"><i class="fa fa-eye"></i> Spectate</a>
     </div>
 </div>

@@ -22,7 +22,7 @@ var timeouts = {};
 // Internal API
 //----------------------------------------------------------------------------------------------------------------------
 
-function deleteGame()
+function deleteGame(gameID)
 {
     //TODO: Need to make sure that game objects get correctly cleaned up, and we don't leak them.
     delete games[gameID];
@@ -58,7 +58,8 @@ function newGame(name, creator)
 } // end newGame
 
 /**
- * Adds the player to a specific game.
+ * Adds the player to a specific game. Handles the case where the player was already a spectator, but has decided to
+ * join the game.
  *
  * @param {string} gameID - The ID of the game the player is joining.
  * @param {PlayerClient} player - The player joining the game.
@@ -69,26 +70,40 @@ function joinGame(gameID, player)
     var game = games[gameID];
     if(game)
     {
-        return game.join(player)
+        var spectatorPromise = Promise.resolve();
+
+        // Check to make sure that our player isn't already a spectator of the game. If it is, then we need to leave as
+        // a spectator, and re-join as a player.
+        if(_.find(game.spectators, { id: player.id }))
+        {
+            spectatorPromise = this.spectatorLeaveGame(game.id, player);
+        } // end if
+
+        return spectatorPromise
             .then(function()
             {
-                if((gameID in timeouts) && game.enoughPlayers)
-                {
-                    clearTimeout(timeouts[gameID]);
-                } // end if
+                return game.join(player)
+                    .then(function()
+                    {
+                        // Check to see if we've got a dead game timeout running that we can clear
+                        if((gameID in timeouts) && game.enoughPlayers)
+                        {
+                            clearTimeout(timeouts[gameID]);
+                        } // end if
 
-                // Return the game object
-                return game;
+                        // Return the game object
+                        return game;
+                    });
             });
     }
     else
     {
-        return Promise.reject(new Error("Game not found."));
+        return Promise.reject(new Error("Game '" + gameID + "' not found."));
     } // end if
 } // end joinGame
 
 /**
- * Removes the player from a specific game.
+ * Removes the player from a specific game. Attempts to detect if it's a spectator or a player.
  *
  * @param {string} gameID - The ID of the game the player is leaving.
  * @param {PlayerClient} player - The player leaving the game.
@@ -100,29 +115,38 @@ function leaveGame(gameID, player)
 
     if(game)
     {
-        return game.leave(player)
-            .then(function()
-            {
-                if(game.humanPlayers.length == 0)
+        // Check to see if we're a spectator, and if so, leave the spectators list.
+        if(_.find(game.spectators, { id: player.id }))
+        {
+            return game.spectatorLeave(player);
+        }
+        else
+        {
+            // Assume we're a player attempting to leave.
+            return game.leave(player)
+                .then(function()
                 {
-                    deleteGame();
-                }
-                else if(game.state == 'paused')
-                {
-                    timeouts[gameID] = setTimeout(function()
+                    if(game.humanPlayers.length == 0)
                     {
-                        // Being paranoid, and checking that we're still in the correct state
-                        if(game.state == 'paused')
+                        deleteGame(gameID);
+                    }
+                    else if(game.state == 'paused')
+                    {
+                        timeouts[gameID] = setTimeout(function()
                         {
-                            deleteGame();
-                        } // end if
-                    }, 43200000);
-                } // end if
-            });
+                            // Being paranoid, and checking that we're still in the correct state
+                            if(game.state == 'paused')
+                            {
+                                deleteGame(gameID);
+                            } // end if
+                        }, 43200000);
+                    } // end if
+                });
+        } // end if
     }
     else
     {
-        return Promise.reject(new Error("Game not found."));
+        return Promise.reject(new Error("Game '" + gameID + "' not found."));
     } // end if
 } // end leaveGame
 
@@ -147,7 +171,7 @@ function spectatorJoinGame(gameID, spectator)
     }
     else
     {
-        return Promise.reject(new Error("Game not found."));
+        return Promise.reject(new Error("Game '" + gameID + "' not found."));
     } // end if
 } // end spectatorJoinGame
 
@@ -166,7 +190,7 @@ function spectatorLeaveGame(gameID, spectator)
     }
     else
     {
-        return Promise.reject(new Error("Game not found."));
+        return Promise.reject(new Error("Game '" + gameID + "' not found."));
     } // end if
 } // end spectatorLeaveGame
 
