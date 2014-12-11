@@ -45,6 +45,7 @@ function GameServiceFactory($interval, _, socket, client)
         socket.on('game renamed', this.handleGameRenamed.bind(this));
         socket.on('game started', this.handleGameStarted.bind(this));
         socket.on('game paused', this.handleGamePaused.bind(this));
+        socket.on('game unpaused', this.handleGameUnpaused.bind(this));
 
         // Round
         socket.on('next round', this.handleNextRound.bind(this));
@@ -61,6 +62,7 @@ function GameServiceFactory($interval, _, socket, client)
     GameService.prototype.setCurrentGame = function(gameID)
     {
         this.currentGame = _.find(this.games, { id: gameID });
+        console.log('game state:', this.currentGame.state);
     }; // end setCurrentGame
 
     GameService.prototype.listGames = function()
@@ -130,7 +132,19 @@ function GameServiceFactory($interval, _, socket, client)
 
     GameService.prototype.startGame = function()
     {
-        return socket.emit('start game');
+        return socket.emit('start game')
+            .then(function(payload)
+            {
+                if(!payload.confirm)
+                {
+                    console.error('Failed to start game:', payload.message);
+
+                    var error = new Error("Failed to start game.");
+                    error.inner = payload.message;
+
+                    throw error;
+                } // end if
+            });
     }; // end startGame
 
     GameService.prototype.addBot = function(name)
@@ -212,8 +226,17 @@ function GameServiceFactory($interval, _, socket, client)
                         players = self.currentGame.spectators;
                     } // end if
 
-                    // Add our client to the game's players
-                    players.push({ id: client.id, name: client.name });
+
+                    client.initializedPromise
+                        .then(function()
+                        {
+                            console.log('before:', self.currentGame.players, self.currentGame.spectators);
+
+                            // Add our client to the game's players
+                            players.push({ id: client.id, name: client.name });
+
+                            console.log('after:', self.currentGame.players, self.currentGame.spectators);
+                        });
                 }
                 else
                 {
@@ -234,9 +257,13 @@ function GameServiceFactory($interval, _, socket, client)
             {
                 if(payload.confirm)
                 {
+                    console.log('before:', self.currentGame.players, self.currentGame.spectators);
+
                     // Remove ourselves from either spectators and/or players
                     _.remove(self.currentGame.players, { id: client.id });
                     _.remove(self.currentGame.spectators, { id: client.id });
+
+                    console.log('after:', self.currentGame.players, self.currentGame.spectators);
 
                     // Joining a game implicitly clears our current game.
                     self.currentGame = undefined;
@@ -259,61 +286,81 @@ function GameServiceFactory($interval, _, socket, client)
 
     GameService.prototype.handlePlayerJoined = function(payload)
     {
-        console.log('handlePlayerJoined', payload);
+        this.currentGame.players.push(payload.player);
+
+        // If we haven't started yet, check to see if we have enough players, and start the game.
+        if(this.currentGame.state == 'initial' && this.currentGame.players.length >= 2)
+        {
+            console.log('attempting to start the game!');
+            this.startGame();
+        } // end if
     }; // end handlePlayerJoined
 
     GameService.prototype.handlePlayerLeft = function(payload)
     {
-        console.log('handlePlayerLeft', payload);
+        _.remove(this.currentGame.players, { id: payload.player });
     }; // end handlePlayerLeft
 
     GameService.prototype.handleSpectatorJoined = function(payload)
     {
-        console.log('handleSpectatorJoined', payload);
+        this.currentGame.spectators.push(payload.spectator);
     }; // end handleSpectatorJoined
 
     GameService.prototype.handleSpectatorLeft = function(payload)
     {
-        console.log('handleSpectatorLeft', payload);
+        _.remove(this.currentGame.spectators, { id: payload.spectator });
     }; // end handleSpectatorLeft
 
     // Game
 
     GameService.prototype.handleGameRenamed = function(payload)
     {
-        console.log('handleGameRenamed', payload);
+        this.currentGame.name = payload.name;
     }; // end handleGameRenamed
 
     GameService.prototype.handleGameStarted = function()
     {
-        console.log('handleGameStarted');
+        console.log('game started!!');
+        this.currentGame.state = 'started';
     }; // end handleGameStarted
 
     GameService.prototype.handleGamePaused = function()
     {
-        console.log('handleGamePaused');
+        console.log('game paused!!');
+        this.currentGame.state = 'paused';
     }; // end handleGamePaused
+
+    GameService.prototype.handleGameUnpaused = function(payload)
+    {
+        console.log('game unpaused!!');
+        this.currentGame.state = payload.state;
+    }; // end handleGameUnpaused
 
     // Round
 
     GameService.prototype.handleNextRound = function(payload)
     {
-        console.log('handleNextRound', payload);
+        this.currentGame.judge = payload.judge;
+        this.currentGame.currentCall = payload.call;
+        this.currentGame.state = 'waiting';
+        console.log('game state:', 'waiting');
     }; // end handleNextRound
 
     GameService.prototype.handleResponseSubmitted = function(payload)
     {
-        console.log('handleResponseSubmitted', payload);
+        this.currentGame.submittedResponses = this.currentGame.submittedResponses || [];
+        this.currentGame.submittedResponses.push(payload.player);
     }; // end handleResponseSubmitted
 
-    GameService.prototype.handleAllResponsesSubmitted = function(payload)
+    GameService.prototype.handleAllResponsesSubmitted = function()
     {
-        console.log('handleAllResponsesSubmitted', payload);
+        this.currentGame.state = 'judging';
+        console.log('game state:', 'judging');
     }; // end handleAllResponsesSubmitted
 
     GameService.prototype.handleDismissedResponse = function(payload)
     {
-        console.log('handleDismissedResponse', payload);
+        _.remove(this.currentGame.submittedResponses, { id: payload.player });
     }; // end handleDismissedResponse
 
     GameService.prototype.handleSelectedResponse = function(payload)

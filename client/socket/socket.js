@@ -21,9 +21,17 @@ function SocketServiceFactory(Promise, $timeout, io, _)
         });
     } // end SocketService
 
-    SocketService.prototype.on = function()
+    SocketService.prototype.on = function(event, handler)
     {
-        this.socket.on.apply(this.socket, arguments);
+        function newHandler()
+        {
+            handler.apply(handler, arguments);
+
+            // Schedule a digest for the next tick
+            $timeout(function(){});
+        } // end newHandler
+
+        this.socket.on.call(this.socket, event, newHandler);
     }; // end on
 
     SocketService.prototype.emit = function()

@@ -78,14 +78,10 @@ function NewGameController($scope, $location, _, socket, gameSvc)
         return _.isEmpty(($scope.game || {}).decks);
     }; // end decksNotEmpty
 
-    $scope.startGame = function()
+    $scope.finishSetup = function()
     {
-        gameSvc.startGame()
-            .then(function()
-            {
-                $location.path('/game/' + $scope.game.id);
-            });
-    }; // end startGame
+        $location.path('/game/' + $scope.game.id);
+    }; // end finishSetup
 
     $scope.addBot = function(name)
     {

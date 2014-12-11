@@ -198,3 +198,13 @@ This event is fired when the judge selects a card. The player gets a point, and 
 No payload.
 
 Indicates that the game has been paused.
+
+### `game unpaused`
+
+#### Payload:
+
+```javascript
+    state: "..."    // The state we resume in.
+```
+
+Indicates that the game is no longer paused.

@@ -1,4 +1,23 @@
-<h1>{{ game.name }}</h1>
+<!-- Paused Modal -->
+<script type="text/ng-template" id="pauseModal.html">
+    <div class="modal-header">
+        <h3 class="modal-title"><i class="fa fa-clock-o"></i> Game Paused</h3>
+    </div>
+    <div class="modal-body text-center">
+        <h2>Game Paused</h2>
+        <p class="text-muted">Once there are two or more human players, the game will continue.</p>
+    </div>
+    <div class="modal-footer">
+        <a href="/" class="btn btn-danger"><i class="fa fa-sign-out"></i> Leave</a>
+    </div>
+</script>
 
-<p ng-hide="isPlayer">You are a spectator.</p>
-<p ng-show="isPlayer">You are a player.</p>
+<!-- If the game doesn't exist, we show a nice helpful template -->
+<div ng-hide="game" class="container text-center">
+    <h2>Game not found.</h2>
+    <p>The game your looking for can't be found. It may have ended, or perhaps your typed in the url incorrectly.</p>
+    <p>Feel free to try again, or you can <a href="/game/">browse</a> for games to join.</p>
+</div>
+
+<!-- Otherwise, we let our sub templates handle this. -->
+<div ng-show="game" ng-include="gameTemplate"></div>
