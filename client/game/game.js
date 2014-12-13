@@ -4,7 +4,7 @@
 // @module game.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GameController($scope, $routeParams, $modal, socket, clientSvc, gameSvc)
+function GameController($scope, $routeParams, $modal, clientSvc, gameSvc)
 {
     $scope.selectedCards = [];
     $scope.selectedBlank = 0;
@@ -55,7 +55,7 @@ function GameController($scope, $routeParams, $modal, socket, clientSvc, gameSvc
     $scope.isPlayer = ((gameSvc.currentGame || {}).id == $routeParams.id);
 
     // Determine which template we should include
-    $scope.gameTemplate = $scope.isPlayer ? '/game/game/player.html' : '/game/game/spectator.html';
+    $scope.gameTemplate = $scope.isPlayer ? '/game/player.html' : '/game/spectator.html';
 
     // Actually join the game.
     gameSvc.joinGame($scope.isPlayer, $routeParams.id);
@@ -162,7 +162,6 @@ angular.module('card-crimes.controllers').controller('GameController', [
     '$scope',
     '$routeParams',
     '$modal',
-    'SocketService',
     'ClientService',
     'GameService',
     GameController

@@ -411,7 +411,7 @@ function GameServiceFactory($interval, _, socket, client)
 
     GameService.prototype.handleNextRound = function(payload)
     {
-        this.currentGame.judge = payload.judge;
+        this.currentGame.currentJudge = payload.judge;
         this.currentGame.currentCall = payload.call;
         this.currentGame.state = 'waiting';
         console.log('game state:', 'waiting');
