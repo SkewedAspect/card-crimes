@@ -1,5 +1,25 @@
-<div class="container-fluid">
-    <h1>{{ game.name }}</h1>
+<div class="container spectator-page">
+    <br/>
+    <div class="row players">
+        <div class="col-md-3" ng-repeat="player in game.players">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <h4 class="text-center">
+                        <i class="fa" ng-class="{ 'fa-user': player.type != 'bot', 'fa-desktop': player.type == 'bot' }"></i>
+                        &nbsp;{{ player.name }}&nbsp;
+                        <i class="fa" ng-class="{ 'fa-spinner fa-spin text-muted': !hasSubmitted(player.id), 'fa-check text-success': hasSubmitted(player.id) }"></i>
+                    </h4>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <p ng-hide="isPlayer">You are a spectator.</p>
+    <div class="well call-box">
+        <p class="text-center">
+            <span class="call" ng-repeat="snippet in game.currentCall.text">
+                {{ snippet }}
+                <span ng-if="!$last" class="blank">&nbsp;</span>
+            </span>
+        </p>
+    </div>
 </div>

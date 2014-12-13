@@ -4,13 +4,35 @@
 // @module game.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GameController($scope, $routeParams, $modal, socket, gameSvc)
+function GameController($scope, $routeParams, $modal, socket, clientSvc, gameSvc)
 {
+    $scope.selectedCards = [];
+    $scope.selectedBlank = 0;
+
     // Defined scope properties
-    Object.defineProperty($scope, 'game', {
-        get: function()
-        {
-            return gameSvc.currentGame;
+    Object.defineProperties($scope, {
+        game: {
+            get: function()
+            {
+                return gameSvc.currentGame;
+            }
+        },
+        client: {
+            get: function()
+            {
+                return clientSvc;
+            }
+        },
+        submitReady: {
+            get: function()
+            {
+                if($scope.game.currentCall)
+                {
+                    return $scope.selectedCards.length >= $scope.game.currentCall.numResponses;
+                } // end if
+
+                return false;
+            }
         }
     });
 
@@ -64,6 +86,57 @@ function GameController($scope, $routeParams, $modal, socket, gameSvc)
     });
 
     // -----------------------------------------------------------------------------------------------------------------
+    // Functions
+    // -----------------------------------------------------------------------------------------------------------------
+
+    $scope.hasSubmitted = function(playerID)
+    {
+        return gameSvc.hasSubmitted(playerID);
+    }; // end hasSubmitted
+
+    $scope.getCardText = function(cardID)
+    {
+        var card = _.find($scope.client.responses, { id: cardID });
+
+        if(card)
+        {
+            return card.text;
+        }
+        else
+        {
+            return '';
+        } // end if
+    }; // end getCardText
+
+    $scope.selectCard = function(cardID)
+    {
+        if($scope.selectedCards.indexOf(cardID) == -1)
+        {
+            if($scope.selectedCards.length < $scope.game.currentCall.numResponses)
+            {
+                $scope.selectedCards.push(cardID);
+            }
+            else
+            {
+                $scope.selectedCards[$scope.selectedBlank] = cardID;
+            } // end if
+        }
+        else
+        {
+            _.remove($scope.selectedCards, function(card)
+            {
+                return card == cardID;
+            });
+        } // end if
+    }; // end selectCard
+
+    $scope.submitCards = function()
+    {
+        console.log('submitting cards!');
+        gameSvc.submitResponse($scope.selectedCards);
+    }; // end submitCards
+
+    // -----------------------------------------------------------------------------------------------------------------
     // Event Handlers
     // -----------------------------------------------------------------------------------------------------------------
 
@@ -90,6 +163,7 @@ angular.module('card-crimes.controllers').controller('GameController', [
     '$routeParams',
     '$modal',
     'SocketService',
+    'ClientService',
     'GameService',
     GameController
 ]);

@@ -39,6 +39,8 @@ PlayerClient.prototype._bindEventHandlers = function()
     this.socket.on('remove bot', this._handleRemoveBot.bind(this));
     this.socket.on('join game', this._handleJoinGame.bind(this));
     this.socket.on('leave game', this._handleLeaveGame.bind(this));
+    this.socket.on('draw card', this._handleDrawCard.bind(this));
+    this.socket.on('submit cards', this._handleSubmitCards.bind(this));
 
     // Deck API
     this.socket.on('search decks', this._handleSearchDeck.bind(this));
@@ -217,7 +219,7 @@ PlayerClient.prototype._handleJoinGame = function(isPlayer, gameID, respond)
 
         respond({
             confirm: true,
-            gameID: gameID
+            game: game
         });
     });
 }; // end _handleJoinGame
@@ -241,6 +243,30 @@ PlayerClient.prototype._handleLeaveGame = function(gameID, respond)
             });
         });
 }; // end _handleLeaveGame
+
+PlayerClient.prototype._handleDrawCard = function(respond)
+{
+    this.game.drawResponse()
+        .then(function(card)
+        {
+            respond({
+                confirm: true,
+                card: card
+            })
+        });
+}; // end _handleDrawCard
+
+PlayerClient.prototype._handleSubmitCards = function(cards, respond)
+{
+    this.game.submitResponse(this, cards)
+        .then(function(responseID)
+        {
+            respond({
+                confirm: true,
+                response: responseID
+            });
+        });
+};
 
 //----------------------------------------------------------------------------------------------------------------------
 

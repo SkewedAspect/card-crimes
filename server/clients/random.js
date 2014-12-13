@@ -7,11 +7,14 @@
 var util = require('util');
 var EventEmitter = require('events').EventEmitter;
 
+var _ = require('lodash');
+var Promise = require('bluebird');
+
 var PlayerClient = require('./player');
 
 //----------------------------------------------------------------------------------------------------------------------
 
-function RandomClient(name)
+function RandomClient(name, game)
 {
     // Set our socket as a plain EventEmitter.
     PlayerClient.call(this, new EventEmitter());
@@ -21,9 +24,41 @@ function RandomClient(name)
 
     // Set our type to 'bot', so the client has some clue who's a bot, and who isn't.
     this.type = 'bot';
+
+    // Store the game we were created for
+    this.game = game;
+
+    // Listen for the next round message
+    this.socket.on('next round', this.handleNextRound.bind(this));
 } // end RandomClient
 
 util.inherits(RandomClient, PlayerClient);
+
+RandomClient.prototype.handleNextRound = function()
+{
+    console.log('handling next round!');
+
+    var self = this;
+    var responsePromises = [];
+    _.each(_.range(this.game.currentCall.numResponses), function()
+    {
+        responsePromises.push(self.game.drawResponse());
+    });
+
+    Promise.all(responsePromises)
+        .then(function(responses)
+        {
+            // Turn this into a list of card ids.
+            responses = _.reduce(responses, function(responses, response)
+            {
+                responses.push(response.id);
+                return responses;
+            }, []);
+
+            console.log('submitting responses!');
+            return self.game.submitResponse(self, responses);
+        });
+}; // end handleNextRound
 
 //----------------------------------------------------------------------------------------------------------------------
 

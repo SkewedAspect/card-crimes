@@ -30,6 +30,34 @@ function GameServiceFactory($interval, _, socket, client)
         get recentGames()
         {
             return _.first(_.sortBy(this.games, 'created').reverse(), 5);
+        },
+        get currentGame() {
+            return this._currentGame;
+        },
+        set currentGame(val) {
+            this._currentGame = val;
+
+            // If we are setting a game object, it's time to do some work to it.
+            if(this._currentGame)
+            {
+                console.log('game state:', this._currentGame.state);
+                this._currentGame.submittedResponses = this._currentGame.submittedResponses || [];
+                this._currentGame.players = this._currentGame.players || [];
+                this._currentGame.spectators = this._currentGame.spectators || [];
+
+                if(!this._currentGame.humanPlayers)
+                {
+                    Object.defineProperty(this._currentGame, 'humanPlayers', {
+                        get: function()
+                        {
+                            return _.filter(this.players, function(player)
+                            {
+                                return player.type != 'bot';
+                            });
+                        }
+                    });
+                } // end if
+            } // end if
         }
     }; // end prototype
 
@@ -62,8 +90,12 @@ function GameServiceFactory($interval, _, socket, client)
     GameService.prototype.setCurrentGame = function(gameID)
     {
         this.currentGame = _.find(this.games, { id: gameID });
-        console.log('game state:', this.currentGame.state);
     }; // end setCurrentGame
+
+    GameService.prototype.hasSubmitted = function(playerID)
+    {
+        return (this.currentGame && _.find(this.currentGame.submittedResponses, { player: playerID }));
+    }; // end hasSubmitted
 
     GameService.prototype.listGames = function()
     {
@@ -132,10 +164,16 @@ function GameServiceFactory($interval, _, socket, client)
 
     GameService.prototype.startGame = function()
     {
+        var self = this;
         return socket.emit('start game')
             .then(function(payload)
             {
-                if(!payload.confirm)
+                if(payload.confirm)
+                {
+                    // Now, since we are a player, we must immediately draw cards.
+                    self.drawCards(10);
+                }
+                else
                 {
                     console.error('Failed to start game:', payload.message);
 
@@ -153,11 +191,7 @@ function GameServiceFactory($interval, _, socket, client)
         return socket.emit('add bot', name)
             .then(function(payload)
             {
-                if(payload.confirm)
-                {
-                    self.currentGame.players.push(payload.bot);
-                }
-                else
+                if(!payload.confirm)
                 {
                     var error = new Error("Failed to remove bot.");
                     error.inner = payload.message;
@@ -205,38 +239,16 @@ function GameServiceFactory($interval, _, socket, client)
                     // Joining a game implicitly sets our current game.
                     self.setCurrentGame(gameID);
 
-                    // Figure out which list of players to modify
-                    var players;
-                    if(isPlayer)
-                    {
-                        if(!self.currentGame.players)
-                        {
-                            self.currentGame.players = [];
-                        } // end if
+                    // Merge the payload's game object into our own, to ensure we're up to date.
+                    _.merge(self.currentGame, payload.game);
 
-                        players = self.currentGame.players;
-                    }
-                    else
+                    if(self.currentGame.state != 'initial')
                     {
-                        if(!self.currentGame.spectators)
-                        {
-                            self.currentGame.spectators = [];
-                        } // end if
+                        console.log('getting cards!');
 
-                        players = self.currentGame.spectators;
+                        // Now, since we are a player, we must immediately draw cards.
+                        return self.drawCards(10);
                     } // end if
-
-
-                    client.initializedPromise
-                        .then(function()
-                        {
-                            console.log('before:', self.currentGame.players, self.currentGame.spectators);
-
-                            // Add our client to the game's players
-                            players.push({ id: client.id, name: client.name });
-
-                            console.log('after:', self.currentGame.players, self.currentGame.spectators);
-                        });
                 }
                 else
                 {
@@ -257,13 +269,9 @@ function GameServiceFactory($interval, _, socket, client)
             {
                 if(payload.confirm)
                 {
-                    console.log('before:', self.currentGame.players, self.currentGame.spectators);
-
                     // Remove ourselves from either spectators and/or players
                     _.remove(self.currentGame.players, { id: client.id });
                     _.remove(self.currentGame.spectators, { id: client.id });
-
-                    console.log('after:', self.currentGame.players, self.currentGame.spectators);
 
                     // Joining a game implicitly clears our current game.
                     self.currentGame = undefined;
@@ -278,6 +286,60 @@ function GameServiceFactory($interval, _, socket, client)
             });
     }; // end leaveGame
 
+    GameService.prototype.drawCards = function(numCards)
+    {
+        numCards = numCards || 1;
+
+        var cardPromises = [];
+        _.each(_.range(numCards), function()
+        {
+            cardPromises.push(socket.emit('draw card')
+                .then(function(payload)
+                {
+                    if(payload.confirm)
+                    {
+                        return payload.card;
+                    }
+                    else
+                    {
+                        var error = new Error("Failed to draw card.");
+                        error.inner = payload.message;
+
+                        throw error;
+                    } // end if
+                }));
+        });
+
+        return Promise.all(cardPromises)
+            .then(function(cards)
+            {
+                console.log('cards!', cards);
+                client.responses = cards;
+            });
+    }; // end drawCards
+
+    GameService.prototype.submitResponse = function(cards)
+    {
+        var self = this;
+        console.log('submitting cards...');
+        socket.emit('submit cards', cards)
+            .then(function(payload)
+            {
+                console.log('response!', payload);
+                if(payload.confirm)
+                {
+                    self.currentGame.submittedResponses[payload.response] = { player: client.id };
+                }
+                else
+                {
+                    var error = new Error("Failed to submit cards.");
+                    error.inner = payload.message;
+
+                    throw error;
+                } // end if
+            });
+    }; // end submitResponse
+
     // -----------------------------------------------------------------------------------------------------------------
     // Event Handlers
     // -----------------------------------------------------------------------------------------------------------------
@@ -289,7 +351,7 @@ function GameServiceFactory($interval, _, socket, client)
         this.currentGame.players.push(payload.player);
 
         // If we haven't started yet, check to see if we have enough players, and start the game.
-        if(this.currentGame.state == 'initial' && this.currentGame.players.length >= 2)
+        if(this.currentGame.state == 'initial' && this.currentGame.humanPlayers.length >= 2)
         {
             console.log('attempting to start the game!');
             this.startGame();
@@ -320,8 +382,17 @@ function GameServiceFactory($interval, _, socket, client)
 
     GameService.prototype.handleGameStarted = function()
     {
-        console.log('game started!!');
+        console.log('game started!!', client.responses);
+
         this.currentGame.state = 'started';
+
+        if(!client.responses || client.responses.length == 0)
+        {
+            console.log('drawing cards');
+
+            // Now, since we are a player, we must immediately draw cards.
+            this.drawCards(10);
+        } // end if
     }; // end handleGameStarted
 
     GameService.prototype.handleGamePaused = function()
@@ -348,8 +419,8 @@ function GameServiceFactory($interval, _, socket, client)
 
     GameService.prototype.handleResponseSubmitted = function(payload)
     {
-        this.currentGame.submittedResponses = this.currentGame.submittedResponses || [];
-        this.currentGame.submittedResponses.push(payload.player);
+        console.log('response submitted:', payload);
+        this.currentGame.submittedResponses[payload.response] = { player: payload.player };
     }; // end handleResponseSubmitted
 
     GameService.prototype.handleAllResponsesSubmitted = function()

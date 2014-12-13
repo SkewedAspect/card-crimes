@@ -11,10 +11,19 @@ var Promise = require('bluebird');
 var api = require('../api');
 var errors = require('../errors');
 
+var logger = require('omega-logger').loggerFor(module);
+
 //----------------------------------------------------------------------------------------------------------------------
 
 function drawRandom(deck)
 {
+    deck = _.compact(deck);
+
+    if(!_.isArray(deck) || _.isEmpty(deck))
+    {
+        logger.error("Deck is empty! This should never happen!");
+    } // end if
+
     var index = Math.floor(deck.length * Math.random());
     return deck.splice(index, 1)[0];
 } // drawRandom
@@ -48,16 +57,15 @@ function Game(name, creator)
     // Changed every round
     this.currentJudge = undefined;
     this.currentCall = undefined;
-    this.submittedResponses = [];
+    this.submittedResponses = {};
 } // end Game
 
 Game.prototype = {
     get humanPlayers()
     {
-        var PlayerClient = require('../clients/player');
         return _.filter(this.players, function(player)
         {
-            return player instanceof PlayerClient;
+            return player.type != 'bot';
         });
     },
     get enoughPlayers(){ return this.humanPlayers.length > 1; }
@@ -78,6 +86,7 @@ Game.prototype._buildDeck = function()
         self.calls = self.calls.concat(value.calls);
         self.responses = self.responses.concat(value.responses);
     });
+
 }; // end _buildDeck
 
 Game.prototype._checkResponses = function()
@@ -348,7 +357,7 @@ Game.prototype.addRandomPlayer = function(name)
     name = name || "Rando Cardrissian";
 
     // Build the client object
-    var client = new RandomClient(name);
+    var client = new RandomClient(name, this);
     this.players.push(client);
 
     // Inform players that a 'new player' has joined
@@ -460,7 +469,9 @@ Game.prototype.submitResponse = function(player, cardIDs)
             self.submittedResponses[response.id] = response;
 
             // Inform other players that this player has submitted their response.
-            self._broadcast('response submitted', { player: player.id }, player);
+            self._broadcast('response submitted', { response: response.id, player: player.id }, player);
+
+            console.log('a response was submitted by:', player.name);
 
             // We check the responses, to see if we should change state.
             if(self._checkResponses())
@@ -542,6 +553,14 @@ Game.prototype.toJSON = function()
             response_count: deck.response_count
         }
     });
+
+    var submittedResponses = _.transform(this.submittedResponses, function(result, response, id)
+    {
+        result[id] = {
+            player: response.player.id
+        }
+    });
+
     return {
         id: this.id,
         name: this.name,
@@ -552,7 +571,7 @@ Game.prototype.toJSON = function()
         spectators: this.spectators,
         currentCall: this.currentCall,
         currentJudge: this.currentJudge,
-        submittedResponses: this.submittedResponses
+        submittedResponses: submittedResponses
     }
 }; // end toJSON
 

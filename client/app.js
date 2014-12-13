@@ -26,7 +26,19 @@ angular.module('card-crimes', [
             .when('/game/new', { templateUrl: '/game/new/new.html', controller: 'NewGameController' })
             .when('/game/:id', { templateUrl: '/game/game/game.html', controller: 'GameController' })
             .otherwise({redirectTo: '/'});
-    }]);
+    }])
+    .filter('renderResponse', function()
+    {
+        return function(responseText)
+        {
+            if(responseText[responseText.length - 1] != '.')
+            {
+                responseText += '.';
+            } // end if
+
+            return responseText;
+        }; // end renderResponse
+    });
 
 // ---------------------------------------------------------------------------------------------------------------------
 
