@@ -15,13 +15,11 @@ function GameSummaryFactory($location, _, gameSvc)
 
         $scope.join = function(isPlayer)
         {
-            if(isPlayer)
-            {
-                // When we join a game, if we already have our game correctly set, we assume we're joining as a player.
-                gameSvc.setCurrentGame($scope.game.id);
-            } // end if
-
-            $location.path('/game/' + $scope.game.id);
+            gameSvc.joinGame(isPlayer, $scope.game.id)
+                .then(function()
+                {
+                    $location.path('/game/' + $scope.game.id);
+                });
         }; // end join
     } // end GameSummaryController
 

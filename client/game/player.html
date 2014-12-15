@@ -1,10 +1,10 @@
 <div class="player-page">
 
     <!-- Include the judge template if we're the judge -->
-    <div ng-if="game.currentJudge == client.id" ng-include="'/game/judge.html'"></div>
+    <div ng-if="game.currentJudge.id == client.id" ng-include="'/game/judge.html'"></div>
 
     <!-- Other wise, we are just a normal player -->
-    <div ng-if="game.currentJudge != client.id">
+    <div ng-if="game.currentJudge.id != client.id" class="player-container">
         <div class="well call-box">
             <div class="container">
                 <h1 class="text-center">
@@ -23,9 +23,9 @@
                 </div>
             </div>
         </div>
-        <div class="container">
+        <div class="container responses">
             <div class="row">
-                <div class="col-sm-3" ng-repeat="card in client.responses">
+                <div class="col-xs-6 col-sm-3" ng-repeat="card in client.responses">
                     <div class="panel panel-default response-card" ng-class="{'panel-default': selectedCards.indexOf(card.id) == -1, 'panel-primary': selectedCards.indexOf(card.id) != -1}" ng-click="selectCard(card.id)">
                         <div class="panel-body">
                             <h4>{{ card.displayText | renderResponse }}</h4>

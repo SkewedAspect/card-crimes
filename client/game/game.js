@@ -4,7 +4,7 @@
 // @module game.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GameController($scope, $routeParams, $modal, clientSvc, gameSvc)
+function GameController($scope, $routeParams, $modal, client, gameSvc)
 {
     $scope.selectedCards = [];
     $scope.selectedBlank = 0;
@@ -17,10 +17,22 @@ function GameController($scope, $routeParams, $modal, clientSvc, gameSvc)
                 return gameSvc.currentGame;
             }
         },
+        isPlayer: {
+            get: function()
+            {
+                return !!_.find((gameSvc.currentGame || {}).players, { id: client.id });
+            }
+        },
+        gameTemplate: {
+            get: function()
+            {
+                return $scope.isPlayer ? '/game/player.html' : '/game/spectator.html';
+            }
+        },
         client: {
             get: function()
             {
-                return clientSvc;
+                return client;
             }
         },
         submitReady: {
@@ -50,15 +62,11 @@ function GameController($scope, $routeParams, $modal, clientSvc, gameSvc)
     // Setup
     // -----------------------------------------------------------------------------------------------------------------
 
-    // If the game service already has it's current game set correctly, then we implicitly are being told we're joining
-    // as a player. If it's set to anything other than our current game, we join as a spectator.
-    $scope.isPlayer = ((gameSvc.currentGame || {}).id == $routeParams.id);
-
-    // Determine which template we should include
-    $scope.gameTemplate = $scope.isPlayer ? '/game/player.html' : '/game/spectator.html';
-
-    // Actually join the game.
-    gameSvc.joinGame($scope.isPlayer, $routeParams.id);
+    // If we don't already have a game set, we join as a spectator
+    if(!$scope.game)
+    {
+        client.joinGamePromise = gameSvc.joinGame($scope.isPlayer, $routeParams.id);
+    } // end if
 
     // -----------------------------------------------------------------------------------------------------------------
     // Watches
@@ -66,8 +74,6 @@ function GameController($scope, $routeParams, $modal, clientSvc, gameSvc)
 
     $scope.$watch('game.state', function(state)
     {
-        console.log('game state:', state);
-
         switch(state)
         {
             case 'initial':
@@ -100,7 +106,7 @@ function GameController($scope, $routeParams, $modal, clientSvc, gameSvc)
 
         if(card)
         {
-            return card.text;
+            return card.displayText;
         }
         else
         {

@@ -5,8 +5,9 @@
 //----------------------------------------------------------------------------------------------------------------------
 
 var shortId = require('shortid');
-var api = require('../api');
+var Promise = require('bluebird');
 
+var api = require('../api');
 var gameManager = require('../game/manager');
 
 var logger = require('omega-logger').loggerFor(module);
@@ -16,6 +17,7 @@ var logger = require('omega-logger').loggerFor(module);
 function PlayerClient(socket)
 {
     this.id = shortId.generate();
+    this.secret = shortId.generate();
     this.name = 'Player-' + this.id;
     this.socket = socket;
 
@@ -49,15 +51,75 @@ PlayerClient.prototype._bindEventHandlers = function()
 }; // end _bindEventHandlers
 
 //----------------------------------------------------------------------------------------------------------------------
+// Public API
+//----------------------------------------------------------------------------------------------------------------------
+
+PlayerClient.prototype.negotiateSecret = function(clients)
+{
+    var self = this;
+    return new Promise(function(resolve)
+    {
+        self.socket.emit('negotiate secret', { secret: self.secret }, function(payload)
+        {
+            if(payload.confirm)
+            {
+                // The client didn't have a previous secret, and accepted ours
+                resolve(this);
+            }
+            else
+            {
+                // The client had a previous secret. We need to look it up, and reconnect them to their previous client.
+                var oldClient = clients[payload.secret];
+
+                if(!oldClient)
+                {
+                    logger.warn("Previous client not found.");
+
+                    self.secret = payload.secret;
+                    oldClient = self;
+                } // end if
+
+                // Remove all listeners from our socket object
+                self.socket.removeAllListeners();
+
+                // Pass off our socket ot the old client
+                oldClient.socket = self.socket;
+                oldClient._bindEventHandlers();
+
+                // If the old client's disconnection timer is running, let's stop that.
+                if(oldClient.disconnectTimeout)
+                {
+                    clearTimeout(oldClient.disconnectTimeout);
+                    oldClient.disconnectTimeout = undefined;
+                } // end if
+
+                // If the client was part of a game, we need to tell it to rejoin
+                if(oldClient.game)
+                {
+                    oldClient.socket.emit('game rejoined', { game:oldClient.game });
+                } // end if
+
+                resolve(oldClient);
+            } // end if
+        });
+    });
+}; // end negotiateSecret
+
+//----------------------------------------------------------------------------------------------------------------------
 // Event Handlers
 //----------------------------------------------------------------------------------------------------------------------
 
 PlayerClient.prototype._handleDisconnect = function()
 {
-    if(this.game)
+    var self = this;
+    var timeout = 2 * 60 * 1000; // 2 minutes
+    this.disconnectTimeout = setTimeout(function()
     {
-        gameManager.leaveGame(this.game.id, this);
-    } // end if
+        if(self.game)
+        {
+            gameManager.leaveGame(self.game.id, self);
+        } // end if
+    }, timeout);
 }; // end _handleDisconnect
 
 PlayerClient.prototype._handleDetails = function(respond)
@@ -226,9 +288,11 @@ PlayerClient.prototype._handleJoinGame = function(isPlayer, gameID, respond)
 
 PlayerClient.prototype._handleLeaveGame = function(gameID, respond)
 {
+    var self = this;
     gameManager.leaveGame(gameID, this)
         .then(function()
         {
+            self.game = undefined;
             respond({
                 confirm: true
             });

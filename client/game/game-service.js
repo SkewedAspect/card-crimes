@@ -1,15 +1,16 @@
 // ---------------------------------------------------------------------------------------------------------------------
 // GameService
 //
-// @module game.js
+// @module game-service.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GameServiceFactory($interval, _, socket, client)
+function GameServiceFactory(Promise, $interval, $location, _, socket, client)
 {
     function GameService()
     {
         var self = this;
         this.games = [];
+        this.events = [];
 
         // Get an initial list of games
         this.listGames();
@@ -40,7 +41,6 @@ function GameServiceFactory($interval, _, socket, client)
             // If we are setting a game object, it's time to do some work to it.
             if(this._currentGame)
             {
-                console.log('game state:', this._currentGame.state);
                 this._currentGame.submittedResponses = this._currentGame.submittedResponses || [];
                 this._currentGame.players = this._currentGame.players || [];
                 this._currentGame.spectators = this._currentGame.spectators || [];
@@ -58,30 +58,61 @@ function GameServiceFactory($interval, _, socket, client)
                     });
                 } // end if
             } // end if
-        }
+
+            // Process any waiting events
+            this._processEvents();
+        } // end set currentGame
     }; // end prototype
 
     GameService.prototype._bindEventHandlers = function()
     {
         // Players
-        socket.on('player joined', this.handlePlayerJoined.bind(this));
-        socket.on('player left', this.handlePlayerLeft.bind(this));
-        socket.on('spectator joined', this.handleSpectatorJoined.bind(this));
-        socket.on('spectator left', this.handleSpectatorLeft.bind(this));
+        socket.on('player joined', this._buildEventHandler(this.handlePlayerJoined));
+        socket.on('player left', this._buildEventHandler(this.handlePlayerLeft));
+        socket.on('spectator joined', this._buildEventHandler(this.handleSpectatorJoined));
+        socket.on('spectator left', this._buildEventHandler(this.handleSpectatorLeft));
 
         // Game
-        socket.on('game renamed', this.handleGameRenamed.bind(this));
-        socket.on('game started', this.handleGameStarted.bind(this));
-        socket.on('game paused', this.handleGamePaused.bind(this));
-        socket.on('game unpaused', this.handleGameUnpaused.bind(this));
+        socket.on('game renamed', this._buildEventHandler(this.handleGameRenamed));
+        socket.on('game started', this._buildEventHandler(this.handleGameStarted));
+        socket.on('game paused', this._buildEventHandler(this.handleGamePaused));
+        socket.on('game unpaused', this._buildEventHandler(this.handleGameUnpaused));
+        socket.on('game rejoined', this._buildEventHandler(this.handleGameRejoined));
 
         // Round
-        socket.on('next round', this.handleNextRound.bind(this));
-        socket.on('response submitted', this.handleResponseSubmitted.bind(this));
-        socket.on('all responses submitted', this.handleAllResponsesSubmitted.bind(this));
-        socket.on('dismissed response', this.handleDismissedResponse.bind(this));
-        socket.on('selected response', this.handleSelectedResponse.bind(this));
+        socket.on('next round', this._buildEventHandler(this.handleNextRound));
+        socket.on('response submitted', this._buildEventHandler(this.handleResponseSubmitted));
+        socket.on('all responses submitted', this._buildEventHandler(this.handleAllResponsesSubmitted));
+        socket.on('dismissed response', this._buildEventHandler(this.handleDismissedResponse));
+        socket.on('selected response', this._buildEventHandler(this.handleSelectedResponse));
     }; // end _bindEventHandlers
+
+    GameService.prototype._buildEventHandler = function(callback)
+    {
+        return function()
+        {
+            if(this.currentGame)
+            {
+                callback.apply(this, arguments)
+            }
+            else if(!this.leaving)
+            {
+                this.events.push({ callback: callback, args: arguments });
+            } // end if
+        }.bind(this);
+    }; // end _buildEventHandler
+
+    GameService.prototype._processEvents = function()
+    {
+        var self = this;
+        _.each(this.events, function(event)
+        {
+            event.callback.apply(self, event.args);
+        });
+
+        // Clear the events
+        this.events = [];
+    }; // end _processEvents
 
     // -----------------------------------------------------------------------------------------------------------------
     // Public API
@@ -244,8 +275,6 @@ function GameServiceFactory($interval, _, socket, client)
 
                     if(self.currentGame.state != 'initial')
                     {
-                        console.log('getting cards!');
-
                         // Now, since we are a player, we must immediately draw cards.
                         return self.drawCards(10);
                     } // end if
@@ -313,7 +342,6 @@ function GameServiceFactory($interval, _, socket, client)
         return Promise.all(cardPromises)
             .then(function(cards)
             {
-                console.log('cards!', cards);
                 client.responses = cards;
             });
     }; // end drawCards
@@ -382,14 +410,10 @@ function GameServiceFactory($interval, _, socket, client)
 
     GameService.prototype.handleGameStarted = function()
     {
-        console.log('game started!!', client.responses);
-
         this.currentGame.state = 'started';
 
         if(!client.responses || client.responses.length == 0)
         {
-            console.log('drawing cards');
-
             // Now, since we are a player, we must immediately draw cards.
             this.drawCards(10);
         } // end if
@@ -404,14 +428,55 @@ function GameServiceFactory($interval, _, socket, client)
     GameService.prototype.handleGameUnpaused = function(payload)
     {
         console.log('game unpaused!!');
-        this.currentGame.state = payload.state;
+        this.currentGame.state = 'payload.state';
     }; // end handleGameUnpaused
+
+    GameService.prototype.handleGameRejoined = function(payload)
+    {
+        var self = this;
+
+        // Check for a joinGame promise
+        var rejoinPromise = new Promise(function(resolve) { resolve(); });
+        if(client.joinGamePromise)
+        {
+            rejoinPromise = client.joinGamePromise;
+        }
+        else
+        {
+            // If we don't already have a joinGamePromise, then we set one.
+            client.joinGamePromise = rejoinPromise;
+        } // end if
+
+        rejoinPromise.then(function()
+        {
+            // Joining a game implicitly sets our current game.
+            self.setCurrentGame(payload.game.id);
+
+            // Merge the payload's game object into our own, to ensure we're up to date.
+            _.merge(self.currentGame, payload.game);
+
+            // Check to see if we need to draw cards
+            var cardsPromise = new Promise(function(resolve) { resolve(); });
+            if(self.currentGame.state != 'initial' && !(client.responses && client.responses.length > 0))
+            {
+                // Now, since we are a player, we must immediately draw cards.
+                cardsPromise = self.drawCards(10);
+            } // end if
+
+            // Once we've drawn cards, if we need to, reload our url.
+            cardsPromise
+                .then(function()
+                {
+                    $location.path('/game/' + payload.game.id);
+                });
+        });
+    }; // end handleGameRejoined
 
     // Round
 
     GameService.prototype.handleNextRound = function(payload)
     {
-        this.currentGame.currentJudge = payload.judge;
+        this.currentGame.currentJudge = { id: payload.judge };
         this.currentGame.currentCall = payload.call;
         this.currentGame.state = 'waiting';
         console.log('game state:', 'waiting');
@@ -445,7 +510,9 @@ function GameServiceFactory($interval, _, socket, client)
 // ---------------------------------------------------------------------------------------------------------------------
 
 angular.module('card-crimes.services').service('GameService', [
+    '$q',
     '$interval',
+    '$location',
     'lodash',
     'SocketService',
     'ClientService',

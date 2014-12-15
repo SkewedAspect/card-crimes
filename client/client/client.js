@@ -32,25 +32,15 @@ function ClientServiceFactory($cookieStore, socket)
                 } // end if
             });
 
-        socket.on('next round', function(payload)
-        {
-            console.log('next round:', payload);
-        });
-
-        socket.on('player joined', function(payload)
-        {
-            console.log('player joined:', payload);
-        });
+        // Bind the events
+        this._bindEventHandlers();
     } // end ClientService
 
     // -----------------------------------------------------------------------------------------------------------------
 
     ClientService.prototype._bindEventHandlers = function()
     {
-        this.socket.on('player joined', this.handlePlayerJoined.bind(this));
-        this.socket.on('player left', this.handlePlayerLeft.bind(this));
-        this.socket.on('spectator joined', this.handleSpectatorJoined.bind(this));
-        this.socket.on('spectator left', this.handleSpectatorLeft.bind(this));
+        socket.on('negotiate secret', this.handleNegotiateSecret.bind(this));
     }; // end _bindEventHandlers
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -72,25 +62,24 @@ function ClientServiceFactory($cookieStore, socket)
     // Event Handlers
     // -----------------------------------------------------------------------------------------------------------------
 
-    ClientService.prototype.handlePlayerJoined = function()
+    ClientService.prototype.handleNegotiateSecret = function(payload, respond)
     {
+        var secret = $cookieStore.get('secret');
 
-    }; // end handlePlayerJoined
-
-    ClientService.prototype.handlePlayerLeft = function()
-    {
-
-    }; // end handlePlayerLeft
-
-    ClientService.prototype.handleSpectatorJoined = function()
-    {
-
-    }; // end handleSpectatorJoined
-
-    ClientService.prototype.handleSpectatorLeft = function()
-    {
-
-    }; // end handleSpectatorLeft
+        if(secret)
+        {
+            respond({
+                confirm: false,
+                secret: secret
+            });
+        }
+        else
+        {
+            // Store our cookie
+            $cookieStore.put('secret', payload.secret);
+            respond({ confirm: true });
+        } // end if
+    }; // end handleNegotiateSecret
 
     return new ClientService();
 } // end ClientServiceFactory

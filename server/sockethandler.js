@@ -10,15 +10,18 @@ var PlayerClient = require('./clients/player');
 
 function socketHandler(app, httpServer)
 {
-    app.locals.clients = [];
+    app.locals.clients = {};
     var io = require('socket.io')(httpServer);
 
     io.on('connection', function(socket)
     {
-        app.locals.clients.push(new PlayerClient(socket));
+        var client = new PlayerClient(socket);
+        client.negotiateSecret(app.locals.clients)
+            .then(function(client)
+            {
+                app.locals.clients[client.secret] = client;
+            });
     });
-
-    //TODO: Disconnection
 } // end socketHandler
 
 //----------------------------------------------------------------------------------------------------------------------
