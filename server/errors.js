@@ -4,18 +4,23 @@
 // @module error.js
 //----------------------------------------------------------------------------------------------------------------------
 
+var util = require('util');
+
+//----------------------------------------------------------------------------------------------------------------------
+
 function NotImplementedError(api)
 {
-    this.name = "NotImplementedError";
+    Error.call(this);
     this.message = api + " not implemented.";
 } // end NotImplementedError
-InvalidStateError.prototype = new Error();
+
+util.inherits(NotImplementedError, Error);
 
 //----------------------------------------------------------------------------------------------------------------------
 
 function InvalidStateError(state, action)
 {
-    this.name = "InvalidStateError";
+    Error.call(this);
     this.state = state;
     this.action = action;
 
@@ -28,13 +33,26 @@ function InvalidStateError(state, action)
         this.message = "Cannot perform action while in state '" + state + "'.";
     } // end if
 } // end InvalidStateError
-InvalidStateError.prototype = new Error();
+
+util.inherits(InvalidStateError, Error);
+
+//----------------------------------------------------------------------------------------------------------------------
+
+function AlreadyPlayerError(game)
+{
+    Error.call(this);
+    this.game = game;
+    this.message = "Already a player in game '" + this.game.id + "'.";
+} // end AlreadyPlayerError
+
+util.inherits(AlreadyPlayerError, Error);
 
 //----------------------------------------------------------------------------------------------------------------------
 
 module.exports = {
-    NotImplementedError: NotImplementedError,
-    InvalidStateError: InvalidStateError
+    NotImplemented: NotImplementedError,
+    InvalidState: InvalidStateError,
+    AlreadyPlayer: AlreadyPlayerError
 }; // end exports
 
 //----------------------------------------------------------------------------------------------------------------------
