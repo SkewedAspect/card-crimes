@@ -301,35 +301,47 @@ Game.prototype.join = function(client)
     // Reset the client's score
     client.score = 0;
 
-    this.players.push(client);
-    this.players = _.uniq(this.players, 'id');
-    this._broadcast('player joined', { player: client }, client);
+    // Check for existing player
+    var player = _.find(this.players, { id: client.id });
 
-    // Check to see if we should unpause the game
-    if(this.state == 'paused' && this.enoughPlayers)
+    // If the player doesn't already exist...
+    if(!player)
     {
-        // Figure out which state we should be in
-        if(this._checkResponses())
-        {
-            this.state = 'judging';
-        }
-        else if(this.currentCall && this.currentJudge)
-        {
-            this.state = 'waiting'
-        }
-        else
-        {
-            // Not sure how we got here, so let's just start a new round.
-            this.state = 'next round';
+        this.players.push(client);
+        this._broadcast('player joined', { player: client }, client);
 
-            // Schedule the start of the new round for the next tick.
-            setImmediate(this._newRound.bind(this));
+        // Check to see if we should unpause the game
+        if(this.state == 'paused' && this.enoughPlayers)
+        {
+            // Figure out which state we should be in
+            if(this._checkResponses())
+            {
+                this.state = 'judging';
+            }
+            else if(this.currentCall && this.currentJudge)
+            {
+                this.state = 'waiting'
+            }
+            else
+            {
+                // Not sure how we got here, so let's just start a new round.
+                logger.warn("Couldn't determine the next state.");
+                this.state = 'next round';
+
+                // Schedule the start of the new round for the next tick.
+                setImmediate(this._newRound.bind(this));
+            } // end if
+
+            this._broadcast('game unpaused', {state: this.state});
         } // end if
 
-        this._broadcast('game unpaused', { state: this.state });
+        return Promise.resolve();
+    }
+    else
+    {
+        logger.warn("Player attempting to join game they are already participating in.");
+        return Promise.reject(new Error("Player attempting to join game they are already participating in."));
     } // end if
-
-    return Promise.resolve();
 }; // end join
 
 /**

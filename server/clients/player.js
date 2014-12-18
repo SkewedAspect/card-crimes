@@ -280,15 +280,23 @@ PlayerClient.prototype._handleJoinGame = function(isPlayer, gameID, respond)
     } // end if
 
     // Once we've joined, inform the client.
-    joinPromise.then(function(game)
-    {
-        self.game = game;
+    joinPromise
+        .then(function(game)
+        {
+            self.game = game;
 
-        respond({
-            confirm: true,
-            game: game
+            respond({
+                confirm: true,
+                game: game
+            });
+        })
+        .catch(function(error)
+        {
+            respond({
+                confirm: false,
+                message: error.message
+            });
         });
-    });
 }; // end _handleJoinGame
 
 PlayerClient.prototype._handleLeaveGame = function(gameID, respond)
