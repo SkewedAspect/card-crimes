@@ -1,34 +1,101 @@
 <div class="player-page">
-
-    <!-- Include the judge template if we're the judge -->
-    <div ng-if="game.currentJudge.id == client.id" ng-include="'/game/judge.html'"></div>
-
-    <!-- Other wise, we are just a normal player -->
-    <div ng-if="game.currentJudge.id != client.id" class="player-container">
-        <div class="well call-box">
-            <div class="container">
-                <h1 class="text-center">
+    <div class="well call-box">
+        <div class="container">
+            <h1 class="text-center">
                     <span class="call" ng-repeat="snippet in game.currentCall.text">
                         {{ snippet }}
-                        <span ng-if="!$last" class="blank">{{ getCardText(selectedCards[$index]) || '&nbsp;' }}</span>
+                        <span ng-if="!$last" class="blank">{{ cards.selected[$index].displayText || getCardText(cards.selected[$index]) || '&nbsp;' }}</span>
                     </span>
-                </h1>
-                <div class="row" collapse="!submitReady">
-                    <hr>
-                    <div class="col-md-offset-4 col-md-4">
-                        <button class="btn btn-primary btn-block" ng-click="submitCards()">
-                            <i class="fa fa-sign-in"></i> Submit
-                        </button>
+            </h1>
+            <div class="row" collapse="!submitReady">
+                <hr>
+                <div class="col-md-offset-3 col-md-6 col-lg-offset-2 col-lg-8">
+
+                    <div ng-if="isJudge" class="btn-group btn-group-justified" role="group" aria-label="Actions">
+                        <a class="btn btn-primary" role="button" ng-click="selectWinningResponse()"><i class="fa fa-check"></i> Pick Winner</a>
+                        <a ng-if="game.submittedResponses.length > 1" class="btn btn-warning" role="button" ng-click="dismissResponse()"><i class="fa fa-times"></i> Dismiss</a>
                     </div>
+
+                    <button ng-if="!isJudge" class="btn btn-primary btn-block" ng-click="submitCards()">
+                        <i class="fa fa-sign-in"></i> Submit
+                    </button>
                 </div>
             </div>
         </div>
-        <div class="container responses">
-            <div class="row">
-                <div class="col-xs-6 col-sm-3" ng-repeat="card in client.responses">
-                    <div class="panel panel-default response-card" ng-class="{'panel-default': selectedCards.indexOf(card.id) == -1, 'panel-primary': selectedCards.indexOf(card.id) != -1}" ng-click="selectCard(card.id)">
+    </div>
+
+    <!-- Main body of the page -->
+    <div class="container">
+
+        <!-- Judge Alert -->
+        <div collapse="!isJudge">
+            <div class="alert alert-info text-center" role="alert">
+                <h4><i class="fa fa-gavel"></i> You are currently the Judge.</h4>
+            </div>
+            <hr>
+        </div>
+
+        <!-- Waiting alert -->
+        <div collapse="(isJudge && game.state == 'judging') || (!isJudge && !hasSubmitted) || (!isJudge && hasSubmitted && game.state == 'judging')">
+            <div class="alert alert-warning text-center" role="alert">
+                <h2><i class="fa fa-clock-o"></i> Waiting on Players</h2>
+                <p>Once all players have submitted responses, the game will continue.</p>
+            </div>
+            <hr>
+        </div>
+
+        <!-- Waiting on Judge alert -->
+        <div collapse="isJudge || game.state != 'judging'">
+            <div class="alert alert-info text-center" role="alert">
+                <h2><i class="fa fa-clock-o"></i> Waiting on Judge</h2>
+                <p>Once the judge picks a response, the game will continue.</p>
+            </div>
+            <hr>
+        </div>
+
+        <!-- Responses List -->
+        <div collapse="isJudge || (hasSubmitted && game.state == 'waiting') || game.state == 'judging'" class="player-container">
+            <div class="responses">
+                <div class="row">
+                    <div class="col-xs-6 col-sm-3" ng-repeat="card in client.responses">
+                        <div class="panel panel-default response-card" ng-class="{'panel-default': cards.selected.indexOf(card.id) == -1, 'panel-primary': cards.selected.indexOf(card.id) != -1}" ng-click="selectCard(card.id)">
+                            <div class="panel-body">
+                                <h4>{{ card.displayText | renderResponse }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr>
+        </div>
+
+        <!-- Response Selection -->
+        <div collapse="game.state != 'judging'">
+            <div class="row responses submitted">
+                <div class="col-sm-3" ng-repeat="resp in game.submittedResponses">
+                    <div class="panel panel-default response-card" ng-class="{'panel-default': response.selected != resp, 'panel-primary': response.selected == resp }" ng-click="selectResponse(resp)">
                         <div class="panel-body">
-                            <h4>{{ card.displayText | renderResponse }}</h4>
+                            <div class="sub-response" ng-repeat="card in resp.cards">
+                                <h4>{{ card.displayText | renderResponse }}</h4>
+                                <hr ng-if="!$last">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr>
+        </div>
+
+        <!-- Players -->
+        <div class="row players">
+            <div class=" player col-xs-6" ng-repeat="player in game.players">
+                <div class="panel panel-default">
+                    <div class="panel-body">
+                        <div class="text-center name">
+                            <span class="score text-muted">{{ player.score || 0 }}</span>
+                            <i class="fa" ng-class="getUserClass(player.id)"></i>
+                            &nbsp;{{ player.name }}&nbsp;
+                            <i class="type text-muted fa" ng-class="{ 'fa-user': player.type != 'bot', 'fa-android': player.type == 'bot' }"></i>
                         </div>
                     </div>
                 </div>

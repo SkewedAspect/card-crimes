@@ -36,8 +36,6 @@ util.inherits(RandomClient, PlayerClient);
 
 RandomClient.prototype.handleNextRound = function()
 {
-    console.log('handling next round!');
-
     var self = this;
     var responsePromises = [];
     _.each(_.range(this.game.currentCall.numResponses), function()
@@ -55,7 +53,6 @@ RandomClient.prototype.handleNextRound = function()
                 return responses;
             }, []);
 
-            console.log('submitting responses!');
             return self.game.submitResponse(self, responses);
         });
 }; // end handleNextRound

@@ -21,6 +21,9 @@ function PlayerClient(socket)
     this.name = 'Player-' + this.id;
     this.socket = socket;
 
+    // This is the player's current score
+    this.score = 0;
+
     this._bindEventHandlers();
 } // end GameClient
 
@@ -43,6 +46,8 @@ PlayerClient.prototype._bindEventHandlers = function()
     this.socket.on('leave game', this._handleLeaveGame.bind(this));
     this.socket.on('draw card', this._handleDrawCard.bind(this));
     this.socket.on('submit cards', this._handleSubmitCards.bind(this));
+    this.socket.on('dismiss response', this._handleDismissResponse.bind(this));
+    this.socket.on('select response', this._handleSelectResponse.bind(this));
 
     // Deck API
     this.socket.on('search decks', this._handleSearchDeck.bind(this));
@@ -322,15 +327,57 @@ PlayerClient.prototype._handleDrawCard = function(respond)
 
 PlayerClient.prototype._handleSubmitCards = function(cards, respond)
 {
+    var self = this;
     this.game.submitResponse(this, cards)
         .then(function(responseID)
         {
             respond({
                 confirm: true,
-                response: responseID
+                response: responseID,
+                responses: self.game._sanitizeSubmittedResponses()
             });
         });
 };
+
+PlayerClient.prototype._handleDismissResponse = function(responseID, respond)
+{
+    if(this.game.currentJudge.id != this.id)
+    {
+        logger.warn('Attempted to dismiss response, but not currently the judge. Player:', this.id, this.name);
+        respond({
+            confirm: false,
+            message: "Not callable unless you are the current judge."
+        });
+    }
+    else
+    {
+        this.game.dismissResponse(responseID)
+            .then(function()
+            {
+                respond({ confirm: true });
+            });
+    } // end if
+}; // end _handleDismissResponse
+
+PlayerClient.prototype._handleSelectResponse = function(responseID, respond)
+{
+    if(this.game.currentJudge.id != this.id)
+    {
+        logger.warn('Attempted to select response, but not currently the judge. Player:', this.id, this.name);
+        respond({
+            confirm: false,
+            message: "Not callable unless you are the current judge."
+        });
+    }
+    else
+    {
+        this.game.selectResponse(responseID)
+            .then(function()
+            {
+                respond({ confirm: true });
+            });
+    } // end if
+}; // end _handleSelectResponse
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -339,7 +386,8 @@ PlayerClient.prototype.toJSON = function()
     return {
         id: this.id,
         name: this.name,
-        type: this.type
+        type: this.type,
+        score: this.score
     }
 }; // end toJSON
 

@@ -8,12 +8,20 @@
         p {
             font-size: 6em;
             font-weight: 500;
+
+            @media (max-width: 768px) {
+                font-size: 32px;
+            }
         }
 
         .blank {
             height: 1.2em;
             min-width: 120px;
             border-bottom: 7px solid #099;
+
+            @media (max-width: 768px) {
+                border-bottom: 3px solid #099;
+            }
         }
     }
 }

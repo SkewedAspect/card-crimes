@@ -12,8 +12,57 @@
         }
     }
 
+    .alert {
+        h4 {
+            margin: 0;
+        }
+
+        button.pull-right {
+            margin-top: -7px;
+        }
+    }
+
+    .players {
+        .player {
+
+            .panel-body
+            {
+                position: relative;
+                padding-top: 18px;
+                padding-bottom: 18px;
+            }
+
+            .name {
+                font-size: 18px;
+                font-weight: 500;
+                white-space: nowrap;
+                overflow-x: hidden;
+            }
+
+            .score {
+                position: absolute;
+                top: 8px;
+                left: 8px;
+                font-size: 14px;
+            }
+
+            .type {
+                position: absolute;
+                top: 8px;
+                right: 8px;
+                font-size: 14px;
+            }
+        }
+    }
+
     .response-card {
         height: 170px;
+    }
+
+    .responses.submitted {
+        .response-card {
+            height: 185px;
+        }
     }
 }
 

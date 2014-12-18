@@ -17,11 +17,14 @@ var logger = require('omega-logger').loggerFor(module);
 
 function drawRandom(deck)
 {
-    deck = _.compact(deck);
-
-    if(!_.isArray(deck) || _.isEmpty(deck))
+    if(!_.isArray(deck))
     {
-        logger.error("Deck is empty! This should never happen!");
+        logger.error("Deck is invalid! This should never happen!");
+    } // end if
+
+    if(_.isEmpty(deck))
+    {
+        return undefined;
     } // end if
 
     var index = Math.floor(deck.length * Math.random());
@@ -87,7 +90,33 @@ Game.prototype._buildDeck = function()
         self.responses = self.responses.concat(value.responses);
     });
 
+    // Ensure that the deck is compacted
+    this.calls = _.compact(this.calls);
+    this.responses = _.compact(this.responses);
+
+    // Store unmodified copies
+    this.totalCalls = this.calls.slice(0);
+    this.totalResponses = this.responses.slice(0);
 }; // end _buildDeck
+
+Game.prototype._sanitizeSubmittedResponses = function()
+{
+    var self = this;
+    return _.transform(this.submittedResponses, function(result, response, id)
+    {
+        var cards = _.reduce(response.cards, function(results, cardID)
+        {
+            results.push(_.find(self.totalResponses, { id: cardID }));
+            return results;
+        }, []);
+
+        result[id] = {
+            id: id,
+            cards: cards,
+            player: response.player.id
+        };
+    });
+}; // end _sanitizeSubmittedResponses
 
 Game.prototype._checkResponses = function()
 {
@@ -114,7 +143,6 @@ Game.prototype._checkState = function(validStates, action)
 
 Game.prototype._newRound = function()
 {
-    var PlayerClient = require('../clients/player');
     var self = this;
 
     // Ensure we're in the right state
@@ -122,6 +150,9 @@ Game.prototype._newRound = function()
     {
         this.state = 'new round';
     } // end if
+
+    // Clean out any submitted responses from the last round
+    this.submittedResponses = {};
 
     // Select the next judge
     var nextJudgeIndex = 0;
@@ -151,7 +182,7 @@ Game.prototype._newRound = function()
         } // end if
 
         // Check to make sure this is a player, not an AI.
-        if(this.players[nextJudgeIndex] instanceof PlayerClient)
+        if(this.players[nextJudgeIndex].type != 'bot')
         {
             judgeFound = true;
         } // end if
@@ -172,6 +203,11 @@ Game.prototype._newRound = function()
 
 Game.prototype._drawCall = function()
 {
+    if(this.calls.length == 0)
+    {
+        this.calls = this.totalCalls.slice(0);
+    } // end if
+
     return Promise.resolve(drawRandom(this.calls));
 }; // end _drawCall
 
@@ -262,6 +298,9 @@ Game.prototype.rename = function(name)
  */
 Game.prototype.join = function(client)
 {
+    // Reset the client's score
+    client.score = 0;
+
     this.players.push(client);
     this.players = _.uniq(this.players, 'id');
     this._broadcast('player joined', { player: client }, client);
@@ -435,6 +474,11 @@ Game.prototype.removeDeck = function(playCode)
  */
 Game.prototype.drawResponse = function()
 {
+    if(this.responses.length == 0)
+    {
+        this.responses = this.totalResponses.slice(0);
+    } // end if
+
     return Promise.resolve(drawRandom(this.responses));
 }; // end drawResponse
 
@@ -469,15 +513,17 @@ Game.prototype.submitResponse = function(player, cardIDs)
             self.submittedResponses[response.id] = response;
 
             // Inform other players that this player has submitted their response.
-            self._broadcast('response submitted', { response: response.id, player: player.id }, player);
-
-            console.log('a response was submitted by:', player.name);
+            self._broadcast('response submitted', {
+                    response: response.id,
+                    responses: self._sanitizeSubmittedResponses(),
+                    player: player.id
+                }, player);
 
             // We check the responses, to see if we should change state.
             if(self._checkResponses())
             {
                 self.state = 'judging';
-                self._broadcast('all responses submitted');
+                self._broadcast('all responses submitted', { responses: self._sanitizeSubmittedResponses() });
             } // end if
 
             // Return the response id
@@ -500,7 +546,7 @@ Game.prototype.dismissResponse = function(responseID)
             // Get the dismissed response
             var response = self.submittedResponses[responseID];
 
-            // Remove the dismissed response from submittedResponses.
+            // Remove the dismissed response from submittedResponses
             delete self.submittedResponses[responseID];
 
             // Tell the players of the dismissal.
@@ -517,15 +563,23 @@ Game.prototype.dismissResponse = function(responseID)
 Game.prototype.selectResponse = function(responseID)
 {
     var self = this;
-    return this._checkState('judging', 'dismissResponse()')
+    return this._checkState('judging', 'selectResponse()')
         .then(function()
         {
-            self._broadcast('selected response', { response: self.submittedResponses[responseID] }, self.currentJudge);
+            var response = self.submittedResponses[responseID];
+            response.player.score += 1;
 
-            // Set the state to be 'new round'.
+            self._broadcast('selected response', {
+                    response: {
+                        id: response.id,
+                        player: response.player
+                    }
+                });
+
+            // Set the state to be 'new round'
             self.state = 'new round';
 
-            // Schedule the start of the new round for the next tick.
+            // Schedule the start of the new round for the next tick
             setImmediate(self._newRound.bind(self));
 
             return Promise.resolve();
@@ -554,12 +608,7 @@ Game.prototype.toJSON = function()
         }
     });
 
-    var submittedResponses = _.transform(this.submittedResponses, function(result, response, id)
-    {
-        result[id] = {
-            player: response.player.id
-        }
-    });
+    var submittedResponses = this._sanitizeSubmittedResponses();
 
     return {
         id: this.id,

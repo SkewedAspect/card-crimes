@@ -4,7 +4,7 @@
 // @module game-service.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GameServiceFactory(Promise, $interval, $location, _, socket, client)
+function GameServiceFactory(Promise, $interval, $location, $rootScope, _, socket, client)
 {
     function GameService()
     {
@@ -342,7 +342,12 @@ function GameServiceFactory(Promise, $interval, $location, _, socket, client)
         return Promise.all(cardPromises)
             .then(function(cards)
             {
-                client.responses = cards;
+                if(!_.isArray(client.responses))
+                {
+                    client.responses = [];
+                } // end if
+
+                client.responses = client.responses.concat(cards);
             });
     }; // end drawCards
 
@@ -350,13 +355,13 @@ function GameServiceFactory(Promise, $interval, $location, _, socket, client)
     {
         var self = this;
         console.log('submitting cards...');
-        socket.emit('submit cards', cards)
+        return socket.emit('submit cards', cards)
             .then(function(payload)
             {
                 console.log('response!', payload);
                 if(payload.confirm)
                 {
-                    self.currentGame.submittedResponses[payload.response] = { player: client.id };
+                    self.currentGame.submittedResponses = payload.responses;
                 }
                 else
                 {
@@ -367,6 +372,45 @@ function GameServiceFactory(Promise, $interval, $location, _, socket, client)
                 } // end if
             });
     }; // end submitResponse
+
+    GameService.prototype.dismissResponse = function(responseID)
+    {
+        console.log('dismissing response...');
+        var self = this;
+        return socket.emit('dismiss response', responseID)
+            .then(function(payload)
+            {
+                if(payload.confirm)
+                {
+                    // Remove the submitted response that was dismissed
+                    delete self.currentGame.submittedResponses[responseID];
+                }
+                else
+                {
+                    var error = new Error("Failed to dismiss card.");
+                    error.inner = payload.message;
+
+                    throw error;
+                } // end if
+            });
+    }; // end dismissResponse
+
+    GameService.prototype.selectResponse = function(responseID)
+    {
+        console.log('selecting response...');
+        var self = this;
+        return socket.emit('select response', responseID)
+            .then(function(payload)
+            {
+                if(!payload.confirm)
+                {
+                    var error = new Error("Failed to select card.");
+                    error.inner = payload.message;
+
+                    throw error;
+                } // end if
+            });
+    }; // end selectResponse
 
     // -----------------------------------------------------------------------------------------------------------------
     // Event Handlers
@@ -479,19 +523,24 @@ function GameServiceFactory(Promise, $interval, $location, _, socket, client)
         this.currentGame.currentJudge = { id: payload.judge };
         this.currentGame.currentCall = payload.call;
         this.currentGame.state = 'waiting';
-        console.log('game state:', 'waiting');
     }; // end handleNextRound
 
     GameService.prototype.handleResponseSubmitted = function(payload)
     {
-        console.log('response submitted:', payload);
-        this.currentGame.submittedResponses[payload.response] = { player: payload.player };
+        this.currentGame.submittedResponses = payload.responses;
     }; // end handleResponseSubmitted
 
-    GameService.prototype.handleAllResponsesSubmitted = function()
+    GameService.prototype.handleAllResponsesSubmitted = function(payload)
     {
+        console.log('all responses submitted!!!!');
+
         this.currentGame.state = 'judging';
-        console.log('game state:', 'judging');
+
+        // If we're the judge, then we pay attention to the payload.
+        if(client.id == this.currentGame.currentJudge.id)
+        {
+            this.currentGame.submittedResponses = payload.responses;
+        } // end if
     }; // end handleAllResponsesSubmitted
 
     GameService.prototype.handleDismissedResponse = function(payload)
@@ -502,6 +551,14 @@ function GameServiceFactory(Promise, $interval, $location, _, socket, client)
     GameService.prototype.handleSelectedResponse = function(payload)
     {
         console.log('handleSelectedResponse', payload);
+
+        //this.currentGame.state = 'waiting';
+
+        var player = _.find(this.currentGame.players, { id: payload.response.player.id });
+        player.score = payload.response.player.score;
+
+        // Fire off an event to tell all players that the round is over
+        $rootScope.$broadcast('round over', payload.response);
     }; // end handleSelectedResponse
 
     return new GameService();
@@ -513,6 +570,7 @@ angular.module('card-crimes.services').service('GameService', [
     '$q',
     '$interval',
     '$location',
+    '$rootScope',
     'lodash',
     'SocketService',
     'ClientService',

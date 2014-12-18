@@ -1,14 +1,20 @@
 <div class="container spectator-page">
     <br/>
+    <div class="alert alert-info text-center" role="alert">
+        <button class="btn btn-primary pull-right" ng-click="joinAsPlayer()"><i class="fa fa-share"></i> Join</button>
+        <h4><i class="fa fa-eye"></i> You are currently spectating.</h4>
+    </div>
+    <hr>
     <div class="row players">
-        <div class="col-md-3" ng-repeat="player in game.players">
+        <div class=" player col-xs-6 col-sm-3" ng-repeat="player in game.players">
             <div class="panel panel-default">
                 <div class="panel-body">
-                    <h4 class="text-center">
-                        <i class="fa" ng-class="{ 'fa-user': player.type != 'bot', 'fa-desktop': player.type == 'bot' }"></i>
+                    <div class="text-center name">
+                        <span class="score text-muted">{{ player.score || 0 }}</span>
+                        <i class="fa" ng-class="getUserClass(player.id)"></i>
                         &nbsp;{{ player.name }}&nbsp;
-                        <i class="fa" ng-class="{ 'fa-spinner fa-spin text-muted': !hasSubmitted(player.id), 'fa-check text-success': hasSubmitted(player.id) }"></i>
-                    </h4>
+                        <i class="type text-muted fa" ng-class="{ 'fa-user': player.type != 'bot', 'fa-android': player.type == 'bot' }"></i>
+                    </div>
                 </div>
             </div>
         </div>
