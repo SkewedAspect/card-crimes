@@ -137,7 +137,7 @@ Game.prototype._checkState = function(validStates, action)
     }
     else
     {
-        return Promise.reject(new errors.InvalidStateError(this.state, action));
+        return Promise.reject(new errors.InvalidState(this.state, action));
     } // end if
 }; // end checkState
 
@@ -198,6 +198,15 @@ Game.prototype._newRound = function()
             self.state = 'waiting';
             self.currentCall = call;
             self._broadcast('next round', { judge: self.currentJudge.id, call: call });
+        })
+        .then(function()
+        {
+            // Check to see if we should pause the game
+            if(!self.enoughPlayers)
+            {
+                self.state = 'paused';
+                self._broadcast('game paused');
+            } // end if
         });
 }; // end _newRound
 
@@ -245,7 +254,7 @@ Game.prototype._broadcast = function(type, payload, skipClient)
  */
 Game.prototype.start = function()
 {
-    if(this.enoughPlayers && _.keys(this.decks).length > 0)
+    if(_.keys(this.decks).length > 0)
     {
         // We assume the creator is the person starting the game.
         this._broadcast('game started', undefined, this.creator);
@@ -264,10 +273,6 @@ Game.prototype.start = function()
     else if(_.keys(this.decks).length == 0)
     {
         return Promise.reject(new Error("Cannot start a game without at least one deck."));
-    }
-    else
-    {
-        return Promise.reject(new Error("Not enough players."));
     } // end if
 }; // end start
 
@@ -310,6 +315,9 @@ Game.prototype.join = function(client)
         this.players.push(client);
         this._broadcast('player joined', { player: client }, client);
 
+        // If our player is currently added as a spectator, remove them
+        _.remove(this.spectators, { id: client.id });
+
         // Check to see if we should unpause the game
         if(this.state == 'paused' && this.enoughPlayers)
         {
@@ -340,7 +348,7 @@ Game.prototype.join = function(client)
     else
     {
         logger.warn("Player attempting to join game they are already participating in.");
-        return Promise.reject(new Error("Player attempting to join game they are already participating in."));
+        return Promise.reject(new errors.AlreadyPlayer(this));
     } // end if
 }; // end join
 
@@ -373,11 +381,33 @@ Game.prototype.leave = function(client)
  */
 Game.prototype.spectatorJoin = function(client)
 {
-    this.spectators.push(client);
-    this.spectators = _.uniq(this.spectators, 'id');
-    this._broadcast('spectator joined', { spectator: client }, client);
+    // Check for existing player
+    var player = _.find(this.players, { id: client.id });
 
-    return Promise.resolve();
+    // If the player doesn't already exist...
+    if(!player)
+    {
+        // Check for existing spectator
+        var spectator = _.find(this.spectators, { id: client.id });
+
+        // If the spectator doesn't already exist...
+        if(!spectator)
+        {
+            this.spectators.push(client);
+            this._broadcast('spectator joined', {spectator: client}, client);
+
+            return Promise.resolve();
+        }
+        else
+        {
+            logger.warn("Spectator attempting to join game they are already watching.");
+            return Promise.reject(new Error("Spectator attempting to join game they are already watching."));
+        } // end if
+    }
+    else
+    {
+        return Promise.reject(new errors.AlreadyPlayer(this));
+    } // end if
 }; // end spectatorJoin
 
 /**
@@ -535,6 +565,7 @@ Game.prototype.submitResponse = function(player, cardIDs)
             if(self._checkResponses())
             {
                 self.state = 'judging';
+
                 self._broadcast('all responses submitted', { responses: self._sanitizeSubmittedResponses() });
             } // end if
 

@@ -4,7 +4,7 @@
 // @module game-service.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GameServiceFactory(Promise, $interval, $location, $rootScope, _, socket, client)
+function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
 {
     function GameService()
     {
@@ -31,88 +31,30 @@ function GameServiceFactory(Promise, $interval, $location, $rootScope, _, socket
         get recentGames()
         {
             return _.first(_.sortBy(this.games, 'created').reverse(), 5);
-        },
-        get currentGame() {
-            return this._currentGame;
-        },
-        set currentGame(val) {
-            this._currentGame = val;
-
-            // If we are setting a game object, it's time to do some work to it.
-            if(this._currentGame)
-            {
-                this._currentGame.submittedResponses = this._currentGame.submittedResponses || [];
-                this._currentGame.players = this._currentGame.players || [];
-                this._currentGame.spectators = this._currentGame.spectators || [];
-
-                if(!this._currentGame.humanPlayers)
-                {
-                    Object.defineProperty(this._currentGame, 'humanPlayers', {
-                        get: function()
-                        {
-                            return _.filter(this.players, function(player)
-                            {
-                                return player.type != 'bot';
-                            });
-                        }
-                    });
-                } // end if
-            } // end if
-
-            // Process any waiting events
-            this._processEvents();
-        } // end set currentGame
+        }
     }; // end prototype
 
     GameService.prototype._bindEventHandlers = function()
     {
         // Players
-        socket.on('player joined', this._buildEventHandler(this.handlePlayerJoined));
-        socket.on('player left', this._buildEventHandler(this.handlePlayerLeft));
-        socket.on('spectator joined', this._buildEventHandler(this.handleSpectatorJoined));
-        socket.on('spectator left', this._buildEventHandler(this.handleSpectatorLeft));
+        socket.on('player joined', client.buildEventHandler(this.handlePlayerJoined));
+        socket.on('player left', client.buildEventHandler(this.handlePlayerLeft));
+        socket.on('spectator joined', client.buildEventHandler(this.handleSpectatorJoined));
+        socket.on('spectator left', client.buildEventHandler(this.handleSpectatorLeft));
 
         // Game
-        socket.on('game renamed', this._buildEventHandler(this.handleGameRenamed));
-        socket.on('game started', this._buildEventHandler(this.handleGameStarted));
-        socket.on('game paused', this._buildEventHandler(this.handleGamePaused));
-        socket.on('game unpaused', this._buildEventHandler(this.handleGameUnpaused));
-        socket.on('game rejoined', this._buildEventHandler(this.handleGameRejoined));
+        socket.on('game renamed', client.buildEventHandler(this.handleGameRenamed));
+        socket.on('game started', client.buildEventHandler(this.handleGameStarted));
+        socket.on('game paused', client.buildEventHandler(this.handleGamePaused));
+        socket.on('game unpaused', client.buildEventHandler(this.handleGameUnpaused));
 
         // Round
-        socket.on('next round', this._buildEventHandler(this.handleNextRound));
-        socket.on('response submitted', this._buildEventHandler(this.handleResponseSubmitted));
-        socket.on('all responses submitted', this._buildEventHandler(this.handleAllResponsesSubmitted));
-        socket.on('dismissed response', this._buildEventHandler(this.handleDismissedResponse));
-        socket.on('selected response', this._buildEventHandler(this.handleSelectedResponse));
+        socket.on('next round', client.buildEventHandler(this.handleNextRound));
+        socket.on('response submitted', client.buildEventHandler(this.handleResponseSubmitted));
+        socket.on('all responses submitted', client.buildEventHandler(this.handleAllResponsesSubmitted));
+        socket.on('dismissed response', client.buildEventHandler(this.handleDismissedResponse));
+        socket.on('selected response', client.buildEventHandler(this.handleSelectedResponse));
     }; // end _bindEventHandlers
-
-    GameService.prototype._buildEventHandler = function(callback)
-    {
-        return function()
-        {
-            if(this.currentGame)
-            {
-                callback.apply(this, arguments)
-            }
-            else if(!this.leaving)
-            {
-                this.events.push({ callback: callback, args: arguments });
-            } // end if
-        }.bind(this);
-    }; // end _buildEventHandler
-
-    GameService.prototype._processEvents = function()
-    {
-        var self = this;
-        _.each(this.events, function(event)
-        {
-            event.callback.apply(self, event.args);
-        });
-
-        // Clear the events
-        this.events = [];
-    }; // end _processEvents
 
     // -----------------------------------------------------------------------------------------------------------------
     // Public API
@@ -120,198 +62,251 @@ function GameServiceFactory(Promise, $interval, $location, $rootScope, _, socket
 
     GameService.prototype.setCurrentGame = function(gameID)
     {
-        this.currentGame = _.find(this.games, { id: gameID });
+        client.game = _.find(this.games, { id: gameID });
     }; // end setCurrentGame
 
     GameService.prototype.hasSubmitted = function(playerID)
     {
-        return (this.currentGame && _.find(this.currentGame.submittedResponses, { player: playerID }));
+        return (client.game && _.find(client.game.submittedResponses, { player: playerID }));
     }; // end hasSubmitted
 
     GameService.prototype.listGames = function()
     {
         var self = this;
-        return socket.emit('list games')
-            .then(function(payload)
+        return client.initializedPromise
+            .then(function()
             {
-                self.games = payload.games;
-                return payload.games;
+                return socket.emit('list games')
+                    .then(function(payload)
+                    {
+                        self.games = payload.games;
+                        return payload.games;
+                    });
             });
     }; // end listGames
 
     GameService.prototype.createGame = function(name)
     {
         var self = this;
-        return socket.emit('new game', name)
-            .then(function(payload)
+        return client.initializedPromise
+            .then(function()
             {
-                self.currentGame = payload.game;
-                self.games.push(self.currentGame);
+                return socket.emit('new game', name)
+                    .then(function(payload)
+                    {
+                        client.game = payload.game;
+                        self.games.push(client.game);
+                    });
             });
     }; // end createGame
 
     GameService.prototype.addDeck = function(deck)
     {
         var self = this;
-        this.currentGame.decks = this.currentGame.decks || {};
-        this.currentGame.decks[deck.code] = deck;
+        client.game.decks = client.game.decks || {};
+        client.game.decks[deck.code] = deck;
 
-        return socket.emit('add deck', deck.code)
-            .then(function(payload)
+        return client.initializedPromise
+            .then(function()
             {
-                if(payload.confirm)
-                {
-                    if(self.currentGame.decks[deck.code])
+                return socket.emit('add deck', deck.code)
+                    .then(function(payload)
                     {
-                        self.currentGame.decks[deck.code] = payload.deck;
-                    } // end if
-                }
-                else
-                {
-                    var error = new Error("Failed to add deck.");
-                    error.inner = payload.message;
+                        if(payload.confirm)
+                        {
+                            if(client.game.decks[deck.code])
+                            {
+                                client.game.decks[deck.code] = payload.deck;
+                            } // end if
+                        }
+                        else
+                        {
+                            var error = new Error("Failed to add deck.");
+                            error.inner = payload.message;
 
-                    throw error;
-                } // end if
+                            console.error('Failed to add deck:', error);
+
+                            throw error;
+                        } // end if
+                    });
             });
     }; // end addDeck
 
     GameService.prototype.removeDeck = function(deck)
     {
-        delete this.currentGame.decks[deck.code];
+        delete client.game.decks[deck.code];
 
-        return socket.emit('remove deck', deck.code)
-            .then(function(payload)
+        return client.initializedPromise
+            .then(function()
             {
-                if(!payload.confirm)
-                {
-                    var error = new Error("Failed to remove deck.");
-                    error.inner = payload.message;
+                return socket.emit('remove deck', deck.code)
+                    .then(function(payload)
+                    {
+                        if(!payload.confirm)
+                        {
+                            var error = new Error("Failed to remove deck.");
+                            error.inner = payload.message;
 
-                    throw error;
-                } // end if
+                            console.error('Failed to remove deck:', error);
+
+                            throw error;
+                        } // end if
+                    });
             });
     }; // end addDeck
 
     GameService.prototype.startGame = function()
     {
         var self = this;
-        return socket.emit('start game')
-            .then(function(payload)
+        return client.initializedPromise
+            .then(function()
             {
-                if(payload.confirm)
-                {
-                    // Now, since we are a player, we must immediately draw cards.
-                    self.drawCards(10);
-                }
-                else
-                {
-                    console.error('Failed to start game:', payload.message);
+                return socket.emit('start game')
+                    .then(function(payload)
+                    {
+                        if(payload.confirm)
+                        {
+                            // Make sure our client has an empty hand
+                            client.responses = [];
 
-                    var error = new Error("Failed to start game.");
-                    error.inner = payload.message;
+                            // Now, since we are a player, we must immediately draw cards.
+                            self.drawCards(10);
+                        }
+                        else
+                        {
+                            var error = new Error("Failed to start game.");
+                            error.inner = payload.message;
 
-                    throw error;
-                } // end if
+                            console.error("Failed to start game:", error);
+
+                            throw error;
+                        } // end if
+                    });
             });
     }; // end startGame
 
     GameService.prototype.addBot = function(name)
     {
-        var self = this;
-        return socket.emit('add bot', name)
-            .then(function(payload)
+        return client.initializedPromise
+            .then(function()
             {
-                if(!payload.confirm)
-                {
-                    var error = new Error("Failed to remove bot.");
-                    error.inner = payload.message;
+                return socket.emit('add bot', name)
+                    .then(function(payload)
+                    {
+                        if(!payload.confirm)
+                        {
+                            var error = new Error("Failed to add bot.");
+                            error.inner = payload.message;
 
-                    throw error;
-                } // end if
+                            console.error("Failed to add bot:", error);
+
+                            throw error;
+                        } // end if
+                    });
             });
     }; // end addBot
 
     GameService.prototype.removeBot = function(id)
     {
-        var self = this;
-        return socket.emit('remove bot', id)
-            .then(function(payload)
+        return client.initializedPromise
+            .then(function()
             {
-                if(payload.confirm)
-                {
-                    _.remove(self.currentGame.players, { id: id });
-                }
-                else
-                {
-                    var error = new Error("Failed to remove bot.");
-                    error.inner = payload.message;
+                return socket.emit('remove bot', id)
+                    .then(function(payload)
+                    {
+                        if(payload.confirm)
+                        {
+                            _.remove(client.game.players, { id: id });
+                        }
+                        else
+                        {
+                            var error = new Error("Failed to remove bot.");
+                            error.inner = payload.message;
 
-                    throw error;
-                } // end if
+                            console.error("Failed to remove bot:", error);
+
+                            throw error;
+                        } // end if
+                    });
             });
     }; // end removeBot
 
     GameService.prototype.joinGame = function(isPlayer, gameID)
     {
-        var self = this;
-
         if(arguments.length == 1)
         {
             gameID = isPlayer;
             isPlayer = false;
         } // end if
 
-        return socket.emit('join game', isPlayer, gameID)
-            .then(function(payload)
+        var self = this;
+        return client.initializedPromise
+            .then(function()
             {
-                if(payload.confirm)
-                {
-                    // Joining a game implicitly sets our current game.
-                    self.setCurrentGame(gameID);
-
-                    // Merge the payload's game object into our own, to ensure we're up to date.
-                    _.merge(self.currentGame, payload.game);
-
-                    if(self.currentGame.state != 'initial')
+                return socket.emit('join game', isPlayer, gameID)
+                    .then(function(payload)
                     {
-                        // Now, since we are a player, we must immediately draw cards.
-                        return self.drawCards(10);
-                    } // end if
-                }
-                else
-                {
-                    var error = new Error("Failed to join game.");
-                    error.inner = payload.message;
+                        if(payload.confirm)
+                        {
+                            // Joining a game implicitly sets our current game.
+                            self.setCurrentGame(gameID);
 
-                    throw error;
-                } // end if
+                            // Merge the payload's game object into our own, to ensure we're up to date.
+                            _.merge(client.game, payload.game);
+
+                            if(client.game.state != 'initial')
+                            {
+                                // Now, since we are a player, we must immediately draw cards.
+                                return self.drawCards(10);
+                            } // end if
+                        }
+                        else
+                        {
+                            if(payload.reason == 'already-player')
+                            {
+                                console.warn('Already player...');
+                            }
+                            else
+                            {
+                                var error = new Error("Failed to join game.");
+                                error.inner = payload.message;
+
+                                console.error("Failed to join game:", error);
+
+                                throw error;
+                            } // end if
+                        } // end if
+                    });
             });
     }; // end joinGame
 
     GameService.prototype.leaveGame = function(gameID)
     {
-        var self = this;
-
-        return socket.emit('leave game', gameID)
-            .then(function(payload)
+        return client.initializedPromise
+            .then(function()
             {
-                if(payload.confirm)
-                {
-                    // Remove ourselves from either spectators and/or players
-                    _.remove(self.currentGame.players, { id: client.id });
-                    _.remove(self.currentGame.spectators, { id: client.id });
+                return socket.emit('leave game', gameID)
+                    .then(function(payload)
+                    {
+                        if(payload.confirm)
+                        {
+                            // Remove ourselves from either spectators and/or players
+                            _.remove(client.game.players, { id: client.id });
+                            _.remove(client.game.spectators, { id: client.id });
 
-                    // Joining a game implicitly clears our current game.
-                    self.currentGame = undefined;
-                }
-                else
-                {
-                    var error = new Error("Failed to leave game.");
-                    error.inner = payload.message;
+                            // Joining a game implicitly clears our current game.
+                            client.game = undefined;
+                        }
+                        else
+                        {
+                            var error = new Error("Failed to leave game.");
+                            error.inner = payload.message;
 
-                    throw error;
-                } // end if
+                            console.error("Failed to leave game:", error);
+
+                            throw error;
+                        } // end if
+                    });
             });
     }; // end leaveGame
 
@@ -319,96 +314,117 @@ function GameServiceFactory(Promise, $interval, $location, $rootScope, _, socket
     {
         numCards = numCards || 1;
 
-        var cardPromises = [];
-        _.each(_.range(numCards), function()
-        {
-            cardPromises.push(socket.emit('draw card')
-                .then(function(payload)
-                {
-                    if(payload.confirm)
-                    {
-                        return payload.card;
-                    }
-                    else
-                    {
-                        var error = new Error("Failed to draw card.");
-                        error.inner = payload.message;
-
-                        throw error;
-                    } // end if
-                }));
-        });
-
-        return Promise.all(cardPromises)
-            .then(function(cards)
+        return client.initializedPromise
+            .then(function()
             {
-                if(!_.isArray(client.responses))
+                var cardPromises = [];
+                _.each(_.range(numCards), function()
                 {
-                    client.responses = [];
-                } // end if
+                    cardPromises.push(socket.emit('draw card')
+                        .then(function(payload)
+                        {
+                            if(payload.confirm)
+                            {
+                                return payload.card;
+                            }
+                            else
+                            {
+                                var error = new Error("Failed to draw card.");
+                                error.inner = payload.message;
 
-                client.responses = client.responses.concat(cards);
+                                console.error("Failed to draw card:", error);
+
+                                throw error;
+                            } // end if
+                        }));
+                });
+
+                return cardPromises;
+            })
+            .then(function(cardPromises)
+            {
+                return Promise.all(cardPromises)
+                    .then(function(cards)
+                    {
+                        if(!_.isArray(client.responses))
+                        {
+                            client.responses = [];
+                        } // end if
+
+                        client.responses = client.responses.concat(cards);
+                    });
             });
     }; // end drawCards
 
     GameService.prototype.submitResponse = function(cards)
     {
-        var self = this;
-        console.log('submitting cards...');
-        return socket.emit('submit cards', cards)
-            .then(function(payload)
+        return client.initializedPromise
+            .then(function()
             {
-                console.log('response!', payload);
-                if(payload.confirm)
-                {
-                    self.currentGame.submittedResponses = payload.responses;
-                }
-                else
-                {
-                    var error = new Error("Failed to submit cards.");
-                    error.inner = payload.message;
+                return socket.emit('submit cards', cards)
+                    .then(function(payload)
+                    {
+                        if(payload.confirm)
+                        {
+                            client.game.submittedResponses = payload.responses;
+                        }
+                        else
+                        {
+                            var error = new Error("Failed to submit cards.");
+                            error.inner = payload.message;
 
-                    throw error;
-                } // end if
+                            console.error("Failed to submit cards:", error);
+
+                            throw error;
+                        } // end if
+                    });
             });
     }; // end submitResponse
 
     GameService.prototype.dismissResponse = function(responseID)
     {
-        console.log('dismissing response...');
-        var self = this;
-        return socket.emit('dismiss response', responseID)
-            .then(function(payload)
+        return client.initializedPromise
+            .then(function()
             {
-                if(payload.confirm)
-                {
-                    // Remove the submitted response that was dismissed
-                    delete self.currentGame.submittedResponses[responseID];
-                }
-                else
-                {
-                    var error = new Error("Failed to dismiss card.");
-                    error.inner = payload.message;
+                return socket.emit('dismiss response', responseID)
+                    .then(function(payload)
+                    {
+                        if(payload.confirm)
+                        {
+                            // Remove the submitted response that was dismissed
+                            delete client.game.submittedResponses[responseID];
+                        }
+                        else
+                        {
+                            var error = new Error("Failed to dismiss card.");
+                            error.inner = payload.message;
 
-                    throw error;
-                } // end if
+                            console.error("Failed to dismiss card:", error);
+
+                            throw error;
+                        } // end if
+                    });
             });
     }; // end dismissResponse
 
     GameService.prototype.selectResponse = function(responseID)
     {
-        console.log('selecting response...');
-        var self = this;
-        return socket.emit('select response', responseID)
-            .then(function(payload)
+        return client.initializedPromise
+            .then(function()
             {
-                if(!payload.confirm)
-                {
-                    var error = new Error("Failed to select card.");
-                    error.inner = payload.message;
+                return socket.emit('select response', responseID)
+                    .then(function(payload)
+                    {
+                        if(!payload.confirm)
+                        {
+                            var error = new Error("Failed to select card.");
+                            error.inner = payload.message;
 
-                    throw error;
-                } // end if
+                            console.error("Failed to select card:", error);
+
+                            throw error;
+                        } // end if
+                    });
             });
     }; // end selectResponse
 
@@ -420,41 +436,34 @@ function GameServiceFactory(Promise, $interval, $location, $rootScope, _, socket
 
     GameService.prototype.handlePlayerJoined = function(payload)
     {
-        this.currentGame.players.push(payload.player);
-
-        // If we haven't started yet, check to see if we have enough players, and start the game.
-        if(this.currentGame.state == 'initial' && this.currentGame.humanPlayers.length >= 2)
-        {
-            console.log('attempting to start the game!');
-            this.startGame();
-        } // end if
+        client.game.players.push(payload.player);
     }; // end handlePlayerJoined
 
     GameService.prototype.handlePlayerLeft = function(payload)
     {
-        _.remove(this.currentGame.players, { id: payload.player });
+        _.remove(client.game.players, { id: payload.player });
     }; // end handlePlayerLeft
 
     GameService.prototype.handleSpectatorJoined = function(payload)
     {
-        this.currentGame.spectators.push(payload.spectator);
+        client.game.spectators.push(payload.spectator);
     }; // end handleSpectatorJoined
 
     GameService.prototype.handleSpectatorLeft = function(payload)
     {
-        _.remove(this.currentGame.spectators, { id: payload.spectator });
+        _.remove(client.game.spectators, { id: payload.spectator });
     }; // end handleSpectatorLeft
 
     // Game
 
     GameService.prototype.handleGameRenamed = function(payload)
     {
-        this.currentGame.name = payload.name;
+        client.game.name = payload.name;
     }; // end handleGameRenamed
 
     GameService.prototype.handleGameStarted = function()
     {
-        this.currentGame.state = 'started';
+        client.game.state = 'started';
 
         if(!client.responses || client.responses.length == 0)
         {
@@ -466,95 +475,50 @@ function GameServiceFactory(Promise, $interval, $location, $rootScope, _, socket
     GameService.prototype.handleGamePaused = function()
     {
         console.log('game paused!!');
-        this.currentGame.state = 'paused';
+        client.game.state = 'paused';
     }; // end handleGamePaused
 
     GameService.prototype.handleGameUnpaused = function(payload)
     {
         console.log('game unpaused!!');
-        this.currentGame.state = 'payload.state';
+        client.game.state = 'payload.state';
     }; // end handleGameUnpaused
-
-    GameService.prototype.handleGameRejoined = function(payload)
-    {
-        var self = this;
-
-        // Check for a joinGame promise
-        var rejoinPromise = new Promise(function(resolve) { resolve(); });
-        if(client.joinGamePromise)
-        {
-            rejoinPromise = client.joinGamePromise;
-        }
-        else
-        {
-            // If we don't already have a joinGamePromise, then we set one.
-            client.joinGamePromise = rejoinPromise;
-        } // end if
-
-        rejoinPromise.then(function()
-        {
-            // Joining a game implicitly sets our current game.
-            self.setCurrentGame(payload.game.id);
-
-            // Merge the payload's game object into our own, to ensure we're up to date.
-            _.merge(self.currentGame, payload.game);
-
-            // Check to see if we need to draw cards
-            var cardsPromise = new Promise(function(resolve) { resolve(); });
-            if(self.currentGame.state != 'initial' && !(client.responses && client.responses.length > 0))
-            {
-                // Now, since we are a player, we must immediately draw cards.
-                cardsPromise = self.drawCards(10);
-            } // end if
-
-            // Once we've drawn cards, if we need to, reload our url.
-            cardsPromise
-                .then(function()
-                {
-                    $location.path('/game/' + payload.game.id);
-                });
-        });
-    }; // end handleGameRejoined
 
     // Round
 
     GameService.prototype.handleNextRound = function(payload)
     {
-        this.currentGame.currentJudge = { id: payload.judge };
-        this.currentGame.currentCall = payload.call;
-        this.currentGame.state = 'waiting';
+        client.game.currentJudge = { id: payload.judge };
+        client.game.currentCall = payload.call;
+        client.game.state = 'waiting';
     }; // end handleNextRound
 
     GameService.prototype.handleResponseSubmitted = function(payload)
     {
-        this.currentGame.submittedResponses = payload.responses;
+        client.game.submittedResponses = payload.responses;
     }; // end handleResponseSubmitted
 
     GameService.prototype.handleAllResponsesSubmitted = function(payload)
     {
         console.log('all responses submitted!!!!');
 
-        this.currentGame.state = 'judging';
+        client.game.state = 'judging';
 
         // If we're the judge, then we pay attention to the payload.
-        if(client.id == this.currentGame.currentJudge.id)
+        if(client.id == client.game.currentJudge.id)
         {
-            this.currentGame.submittedResponses = payload.responses;
+            client.game.submittedResponses = payload.responses;
         } // end if
     }; // end handleAllResponsesSubmitted
 
     GameService.prototype.handleDismissedResponse = function(payload)
     {
-        _.remove(this.currentGame.submittedResponses, { id: payload.player });
+        _.remove(client.game.submittedResponses, { id: payload.player });
     }; // end handleDismissedResponse
 
     GameService.prototype.handleSelectedResponse = function(payload)
     {
-        console.log('handleSelectedResponse', payload);
-
-        //this.currentGame.state = 'waiting';
-
-        var player = _.find(this.currentGame.players, { id: payload.response.player.id });
+        var player = _.find(client.game.players, { id: payload.response.player.id });
         player.score = payload.response.player.score;
 
         // Fire off an event to tell all players that the round is over
@@ -569,7 +533,6 @@ function GameServiceFactory(Promise, $interval, $location, $rootScope, _, socket
 angular.module('card-crimes.services').service('GameService', [
     '$q',
     '$interval',
-    '$location',
     '$rootScope',
     'lodash',
     'SocketService',

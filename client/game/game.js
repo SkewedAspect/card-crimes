@@ -15,19 +15,19 @@ function GameController($scope, $routeParams, $modal, client, gameSvc)
         game: {
             get: function()
             {
-                return gameSvc.currentGame;
+                return client.game;
             }
         },
         isPlayer: {
             get: function()
             {
-                return !!_.find((gameSvc.currentGame || {}).players, { id: client.id });
+                return !!_.find((client.game || {}).players, { id: client.id });
             }
         },
         isJudge: {
             get: function()
             {
-                return ((gameSvc.currentGame || {}).currentJudge || {}).id == client.id;
+                return ((client.game || {}).currentJudge || {}).id == client.id;
             }
         },
         hasSubmitted: {
@@ -83,11 +83,21 @@ function GameController($scope, $routeParams, $modal, client, gameSvc)
     // Setup
     // -----------------------------------------------------------------------------------------------------------------
 
-    // If we don't already have a game set, we join as a spectator
-    if(!$scope.game)
-    {
-        client.joinGamePromise = gameSvc.joinGame($scope.isPlayer, $routeParams.id);
-    } // end if
+    client.initializedPromise
+        .then(function()
+        {
+            // If we don't already have a game set, we join as a spectator
+            if(!$scope.game)
+            {
+                console.log('joining as a spectator...');
+                client.joinGamePromise = gameSvc.joinGame($scope.isPlayer, $routeParams.id);
+            } // end if
+
+            if(client.responses.length < 10)
+            {
+                gameSvc.drawCards(10 - client.responses.length)
+            } // end if
+        });
 
     // -----------------------------------------------------------------------------------------------------------------
     // Event Handlers
@@ -280,9 +290,9 @@ function GameController($scope, $routeParams, $modal, client, gameSvc)
             pauseModal = undefined;
         } // end if
 
-        if(gameSvc.currentGame)
+        if(client.game)
         {
-            gameSvc.leaveGame(gameSvc.currentGame.id);
+            gameSvc.leaveGame(client.game.id);
         } // end if
     });
 } // end GameController

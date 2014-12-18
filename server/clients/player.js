@@ -4,10 +4,12 @@
 // @module client.js
 //----------------------------------------------------------------------------------------------------------------------
 
+var _ = require('lodash');
 var shortId = require('shortid');
 var Promise = require('bluebird');
 
 var api = require('../api');
+var errors = require('../errors');
 var gameManager = require('../game/manager');
 
 var logger = require('omega-logger').loggerFor(module);
@@ -33,7 +35,6 @@ PlayerClient.prototype._bindEventHandlers = function()
     this.socket.on('disconnect', this._handleDisconnect.bind(this));
 
     // Client API
-    this.socket.on('client details', this._handleDetails.bind(this));
     this.socket.on('client rename', this._handleClientRename.bind(this));
 
     // Game API
@@ -59,54 +60,45 @@ PlayerClient.prototype._bindEventHandlers = function()
 // Public API
 //----------------------------------------------------------------------------------------------------------------------
 
-PlayerClient.prototype.negotiateSecret = function(clients)
+PlayerClient.prototype.negotiateSecret = function(oldClient)
 {
     var self = this;
     return new Promise(function(resolve)
     {
-        self.socket.emit('negotiate secret', { secret: self.secret }, function(payload)
+        // The client had a previous secret. We need to impersonate it.
+        if(oldClient)
         {
-            if(payload.confirm)
+            self.id = oldClient.id;
+            self.secret = oldClient.secret;
+            self.score = oldClient.score;
+            self.game = oldClient.game;
+
+            // If the previous client were part of a game, we need to remove it, and re-insert ourselves.
+            if(oldClient.game)
             {
-                // The client didn't have a previous secret, and accepted ours
-                resolve(this);
-            }
-            else
-            {
-                // The client had a previous secret. We need to look it up, and reconnect them to their previous client.
-                var oldClient = clients[payload.secret];
+                var game = oldClient.game;
 
-                if(!oldClient)
+                _.remove(game.players, { id: oldClient.id });
+                game.players.push(self);
+
+                if((game.currentJudge || {}).id == oldClient.id)
                 {
-                    logger.warn("Previous client not found.");
-
-                    self.secret = payload.secret;
-                    oldClient = self;
+                    game.currentJudge = self;
                 } // end if
-
-                // Remove all listeners from our socket object
-                self.socket.removeAllListeners();
-
-                // Pass off our socket ot the old client
-                oldClient.socket = self.socket;
-                oldClient._bindEventHandlers();
-
-                // If the old client's disconnection timer is running, let's stop that.
-                if(oldClient.disconnectTimeout)
-                {
-                    clearTimeout(oldClient.disconnectTimeout);
-                    oldClient.disconnectTimeout = undefined;
-                } // end if
-
-                // If the client was part of a game, we need to tell it to rejoin
-                if(oldClient.game)
-                {
-                    oldClient.socket.emit('game rejoined', { game:oldClient.game });
-                } // end if
-
-                resolve(oldClient);
             } // end if
-        });
+
+            // If the old client's disconnection timer is running, let's stop that.
+            if(oldClient.disconnectTimeout)
+            {
+                clearTimeout(oldClient.disconnectTimeout);
+                oldClient.disconnectTimeout = undefined;
+            } // end if
+
+            // Just for good measure
+            oldClient.socket.removeAllListeners();
+        } // end if
+
+        resolve(self);
     });
 }; // end negotiateSecret
 
@@ -126,15 +118,6 @@ PlayerClient.prototype._handleDisconnect = function()
         } // end if
     }, timeout);
 }; // end _handleDisconnect
-
-PlayerClient.prototype._handleDetails = function(respond)
-{
-    respond({
-        confirm: true,
-        id: this.id,
-        name: this.name
-    });
-}; // end _handleDetails
 
 PlayerClient.prototype._handleClientRename = function(name, respond)
 {
@@ -290,8 +273,20 @@ PlayerClient.prototype._handleJoinGame = function(isPlayer, gameID, respond)
                 game: game
             });
         })
+        .catch(errors.AlreadyPlayer, function()
+        {
+            logger.warn('Attempting to join game when already a player. isPlayer:', isPlayer);
+
+            respond({
+                confirm: false,
+                message: 'Attempting to join game when already a player.',
+                reason: 'already-player'
+            });
+        })
         .catch(function(error)
         {
+            logger.error('Encountered error joining game:\n', error.stack || error.message);
+
             respond({
                 confirm: false,
                 message: error.message

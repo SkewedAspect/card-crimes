@@ -4,7 +4,7 @@
 // @module new.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function NewGameController($scope, $location, _, socket, gameSvc)
+function NewGameController($scope, $location, _, socket, client, gameSvc)
 {
     $scope.step = 1;
     $scope.decks = {};
@@ -30,7 +30,7 @@ function NewGameController($scope, $location, _, socket, gameSvc)
             }
         },
         game: {
-            get: function(){ return gameSvc.currentGame; }
+            get: function(){ return client.game; }
         }
     });
 
@@ -80,7 +80,11 @@ function NewGameController($scope, $location, _, socket, gameSvc)
 
     $scope.finishSetup = function()
     {
-        $location.path('/game/' + $scope.game.id);
+        gameSvc.startGame()
+            .then(function()
+            {
+                $location.path('/game/' + $scope.game.id);
+            });
     }; // end finishSetup
 
     $scope.addBot = function(name)
@@ -120,6 +124,7 @@ angular.module('card-crimes.controllers').controller('NewGameController', [
     '$location',
     'lodash',
     'SocketService',
+    'ClientService',
     'GameService',
     NewGameController
 ]);
