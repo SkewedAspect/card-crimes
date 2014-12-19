@@ -6,11 +6,12 @@
 
 angular.module('card-crimes', [
         'ngRoute',
-        'ngCookies',
+        //'ngCookies',
 
         'lodash',
         'socket.io',
         'ui.bootstrap',
+        'ipCookie',
 
         'card-crimes.services',
         'card-crimes.controllers',

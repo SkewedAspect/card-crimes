@@ -4,7 +4,7 @@
 // @module client.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function ClientServiceFactory($cookieStore, $location, $routeParams, socket)
+function ClientServiceFactory(cookieStore, $location, $routeParams, socket)
 {
     function ClientService()
     {
@@ -17,8 +17,8 @@ function ClientServiceFactory($cookieStore, $location, $routeParams, socket)
             .then(function()
             {
                 // Check our cookies for our previous values
-                var playerName = $cookieStore.get('playerName');
-                var secret = $cookieStore.get('secret');
+                var playerName = cookieStore('playerName');
+                var secret = cookieStore('secret');
 
                 return socket.emit('client details', {
                     name: playerName,
@@ -33,8 +33,8 @@ function ClientServiceFactory($cookieStore, $location, $routeParams, socket)
                         self.game = payload.game;
 
                         // Save the details
-                        $cookieStore.put('playerName', payload.name);
-                        $cookieStore.put('secret', payload.secret);
+                        cookieStore('playerName', payload.name, { expires: 24, expirationUnit: 'hours' });
+                        cookieStore('secret', payload.secret, { expires: 2, expirationUnit: 'hours' });
                     });
             })
             .then(function()
@@ -95,7 +95,7 @@ function ClientServiceFactory($cookieStore, $location, $routeParams, socket)
                     .then(function()
                     {
                         self.name = name;
-                        $cookieStore.put('playerName', name);
+                        cookieStore('playerName', name, { expires: 24, expirationUnit: 'hours' });
                     });
             });
     }; // end rename
@@ -137,7 +137,7 @@ function ClientServiceFactory($cookieStore, $location, $routeParams, socket)
 // ---------------------------------------------------------------------------------------------------------------------
 
 angular.module('card-crimes.services').service('ClientService', [
-    '$cookieStore',
+    'ipCookie',
     '$location',
     '$routeParams',
     'SocketService',
