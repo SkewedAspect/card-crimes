@@ -20,7 +20,7 @@
     <div collapse="game.state != 'judging'">
         <div class="row responses submitted">
             <div class="col-sm-3" ng-repeat="resp in game.submittedResponses">
-                <div class="panel panel-default response-card"
+                <div class="panel panel-default response-card non-interactive"
                      ng-class="{'panel-default': response.selected != resp, 'panel-primary': response.selected == resp }"
                      ng-click="selectResponse(resp)">
                     <div class="panel-body">
