@@ -357,7 +357,7 @@ Game.prototype.leave = function(client)
     } // end if
 
     // Check to see if the person who left is currently the judge
-    if(client.id == this.currentJudge.id)
+    if(client.id == this.currentJudge.id && this.state != 'paused')
     {
         var newJudge = this._nextJudge();
 
