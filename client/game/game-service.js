@@ -50,6 +50,7 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
 
         // Round
         socket.on('next round', client.buildEventHandler(this.handleNextRound));
+        socket.on('new judge', client.buildEventHandler(this.handleNewJudge));
         socket.on('response submitted', client.buildEventHandler(this.handleResponseSubmitted));
         socket.on('all responses submitted', client.buildEventHandler(this.handleAllResponsesSubmitted));
         socket.on('dismissed response', client.buildEventHandler(this.handleDismissedResponse));
@@ -460,6 +461,12 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
     {
         client.game.name = payload.name;
     }; // end handleGameRenamed
+
+    GameService.prototype.handleNewJudge = function(payload)
+    {
+        client.game.currentJudge = payload.judge;
+        client.game.submittedResponses = payload.responses;
+    }; // end handleNewJudge
 
     GameService.prototype.handleGameStarted = function()
     {

@@ -141,6 +141,24 @@ Game.prototype._checkState = function(validStates, action)
     } // end if
 }; // end checkState
 
+Game.prototype._nextJudge = function()
+{
+    // Start with the first human
+    var nextJudgeIndex = 0;
+
+    // Get the index of the next judge
+    if(this.currentJudge)
+    {
+        nextJudgeIndex = _.findIndex(this.humanPlayers, { id: this.currentJudge.id }) + 1;
+
+        // Loop around if we're over the size of our human players
+        nextJudgeIndex = nextJudgeIndex >= this.humanPlayers.length ? 0 : nextJudgeIndex;
+    } // end if
+
+    // Return the next judge
+    return this.humanPlayers[nextJudgeIndex];
+}; // end _nextJudge
+
 Game.prototype._newRound = function()
 {
     var self = this;
@@ -154,20 +172,8 @@ Game.prototype._newRound = function()
     // Clean out any submitted responses from the last round
     this.submittedResponses = {};
 
-    // Start with the first human
-    var nextJudgeIndex = 0;
-
-    // Get the index of the next judge
-    if(this.currentJudge)
-    {
-        nextJudgeIndex = _.findIndex(this.humanPlayers, { id: this.currentJudge.id }) + 1;
-
-        // Loop around if we're over the size of our human players
-        nextJudgeIndex = nextJudgeIndex >= this.humanPlayers.length ? 0 : nextJudgeIndex;
-    } // end if
-
     // Set the current judge.
-    this.currentJudge = this.humanPlayers[nextJudgeIndex];
+    this.currentJudge = this._nextJudge();
 
     // Draw the new call
     this._drawCall()
@@ -348,6 +354,34 @@ Game.prototype.leave = function(client)
     {
         this.state = 'paused';
         this._broadcast('game paused');
+    } // end if
+
+    // Check to see if the person who left is currently the judge
+    if(client.id == this.currentJudge.id)
+    {
+        var newJudge = this._nextJudge();
+
+        // Set the new judge
+        this.currentJudge = newJudge;
+
+        // Remove the new judge's response.
+        this.submittedResponses = _.transform(this.submittedResponses, function(result, response, responseID)
+        {
+            if(response.player.id != newJudge.id)
+            {
+                result[responseID] = response;
+            } // end if
+        });
+
+        // We need to tell the client about the chance in judge.
+        this._broadcast('new judge', { judge: newJudge, responses: this._sanitizeSubmittedResponses() });
+
+        // We check the responses, to see if we should change state.
+        if(this._checkResponses() && this.state != 'paused' && this.state != 'judging')
+        {
+            this.state = 'judging';
+            this._broadcast('all responses submitted', { responses: this._sanitizeSubmittedResponses() });
+        } // end if
     } // end if
 
     return Promise.resolve();
