@@ -325,6 +325,8 @@ Game.prototype.join = function(client)
             if(this._checkResponses())
             {
                 this.state = 'judging';
+
+                self._broadcast('all responses submitted', { responses: self._sanitizeSubmittedResponses() });
             }
             else if(this.currentCall && this.currentJudge)
             {
@@ -535,7 +537,7 @@ Game.prototype.drawResponse = function()
 Game.prototype.submitResponse = function(player, cardIDs)
 {
     var self = this;
-    return this._checkState('waiting', 'submitResponse()')
+    return this._checkState(['waiting', 'paused'], 'submitResponse()')
         .then(function()
         {
             // Ensure that it's always an array.
@@ -562,7 +564,7 @@ Game.prototype.submitResponse = function(player, cardIDs)
                 }, player);
 
             // We check the responses, to see if we should change state.
-            if(self._checkResponses())
+            if(self._checkResponses() && self.state != 'paused')
             {
                 self.state = 'judging';
 
