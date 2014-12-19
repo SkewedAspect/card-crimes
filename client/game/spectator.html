@@ -6,21 +6,6 @@
         <h4><i class="fa fa-eye"></i> You are currently spectating.</h4>
     </div>
     <hr>
-    <div class="row players">
-        <div class=" player col-xs-6 col-sm-3" ng-repeat="player in game.players">
-            <div class="panel panel-default">
-                <div class="panel-body">
-                    <div class="text-center name">
-                        <span class="score text-muted">{{ player.score || 0 }}</span>
-                        <i class="fa" ng-class="getUserClass(player.id)"></i>
-                        &nbsp;{{ player.name }}&nbsp;
-                        <i class="type text-muted fa"
-                           ng-class="{ 'fa-user': player.type != 'bot', 'fa-android': player.type == 'bot' }"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <div class="well call-box">
         <p class="text-center">
@@ -48,5 +33,23 @@
             </div>
         </div>
         <hr>
+    </div>
+    <hr>
+
+    <!-- List of Players -->
+    <div class="row players">
+        <div class=" player col-xs-6 col-sm-3" ng-repeat="player in game.players">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <div class="text-center name">
+                        <span class="score text-muted">{{ player.score || 0 }}</span>
+                        <i class="fa" ng-class="getUserClass(player.id)"></i>
+                        &nbsp;{{ player.name }}&nbsp;
+                        <i class="type text-muted fa"
+                           ng-class="{ 'fa-user': player.type != 'bot', 'fa-android': player.type == 'bot' }"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
