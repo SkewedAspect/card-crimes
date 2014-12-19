@@ -154,42 +154,20 @@ Game.prototype._newRound = function()
     // Clean out any submitted responses from the last round
     this.submittedResponses = {};
 
-    // Select the next judge
+    // Start with the first human
     var nextJudgeIndex = 0;
-    var judgeFound = false;
-    var offset = 0;
 
-    while(!judgeFound)
+    // Get the index of the next judge
+    if(this.currentJudge)
     {
-        // Increment offset
-        offset++;
+        nextJudgeIndex = _.findIndex(this.humanPlayers, { id: this.currentJudge.id }) + 1;
 
-        // Figure out the next judge index
-        if(this.currentJudge)
-        {
-                // Get the next possible judge
-                nextJudgeIndex = this.players.indexOf(this.currentJudge) + offset;
-                if(nextJudgeIndex == 0 || nextJudgeIndex >= this.players.length)
-                {
-                    // In the event that nextJudgeIndex == 0, it means we didn't find the current judge in our list of
-                    // players. This is an unexpected condition, so to handle it gracefully, we simply start over at the
-                    // beginning of the players.
-
-                    // If, instead, we run off the list, we circle around to the beginning.
-
-                    nextJudgeIndex = 0;
-                } // end if
-        } // end if
-
-        // Check to make sure this is a player, not an AI.
-        if(this.players[nextJudgeIndex].type != 'bot')
-        {
-            judgeFound = true;
-        } // end if
-    } // end while
+        // Loop around if we're over the size of our human players
+        nextJudgeIndex = nextJudgeIndex >= this.humanPlayers.length ? 0 : nextJudgeIndex;
+    } // end if
 
     // Set the current judge.
-    this.currentJudge = this.players[nextJudgeIndex];
+    this.currentJudge = this.humanPlayers[nextJudgeIndex];
 
     // Draw the new call
     this._drawCall()
