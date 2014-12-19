@@ -105,12 +105,23 @@ PlayerClient.prototype.negotiateSecret = function(oldClient)
                 self.score = oldClient.score;
                 var game = oldClient.game;
 
-                _.remove(game.players, { id: oldClient.id });
-                game.players.push(self);
+                // Were we previously a player?
+                var isPlayer = !!_.find(game.players, { id: oldClient.id });
 
-                if((game.currentJudge || {}).id == oldClient.id)
+                if(isPlayer)
                 {
-                    game.currentJudge = self;
+                    _.remove(game.players, { id: oldClient.id });
+                    game.players.push(self);
+
+                    if((game.currentJudge || {}).id == oldClient.id)
+                    {
+                        game.currentJudge = self;
+                    } // end if
+                }
+                else
+                {
+                    _.remove(game.spectators, { id: oldClient.id });
+                    game.spectators.push(self);
                 } // end if
 
                 // If the old client's disconnection timer is running, let's stop that.
