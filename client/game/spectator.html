@@ -1,5 +1,6 @@
 <div class="container spectator-page">
     <br/>
+
     <div class="alert alert-info text-center" role="alert">
         <button class="btn btn-primary pull-right" ng-click="joinAsPlayer()"><i class="fa fa-share"></i> Join</button>
         <h4><i class="fa fa-eye"></i> You are currently spectating.</h4>
@@ -13,7 +14,8 @@
                         <span class="score text-muted">{{ player.score || 0 }}</span>
                         <i class="fa" ng-class="getUserClass(player.id)"></i>
                         &nbsp;{{ player.name }}&nbsp;
-                        <i class="type text-muted fa" ng-class="{ 'fa-user': player.type != 'bot', 'fa-android': player.type == 'bot' }"></i>
+                        <i class="type text-muted fa"
+                           ng-class="{ 'fa-user': player.type != 'bot', 'fa-android': player.type == 'bot' }"></i>
                     </div>
                 </div>
             </div>
@@ -27,5 +29,24 @@
                 <span ng-if="!$last" class="blank">&nbsp;</span>
             </span>
         </p>
+    </div>
+
+    <!-- Response Selection -->
+    <div collapse="game.state != 'judging'">
+        <div class="row responses submitted">
+            <div class="col-sm-3" ng-repeat="resp in game.submittedResponses">
+                <div class="panel panel-default response-card"
+                     ng-class="{'panel-default': response.selected != resp, 'panel-primary': response.selected == resp }"
+                     ng-click="selectResponse(resp)">
+                    <div class="panel-body">
+                        <div class="sub-response" ng-repeat="card in resp.cards">
+                            <h4>{{ card.displayText | renderResponse }}</h4>
+                            <hr ng-if="!$last">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr>
     </div>
 </div>
