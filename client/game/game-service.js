@@ -39,6 +39,7 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
         // Players
         socket.on('player joined', client.buildEventHandler(this.handlePlayerJoined));
         socket.on('player left', client.buildEventHandler(this.handlePlayerLeft));
+        socket.on('player renamed', client.buildEventHandler(this.handlePlayerRenamed));
         socket.on('spectator joined', client.buildEventHandler(this.handleSpectatorJoined));
         socket.on('spectator left', client.buildEventHandler(this.handleSpectatorLeft));
 
@@ -444,6 +445,15 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
     {
         _.remove(client.game.players, { id: payload.player });
     }; // end handlePlayerLeft
+
+    GameService.prototype.handlePlayerRenamed = function(payload)
+    {
+        var player = _.find(client.game.players, { id: payload.player.id });
+        if(player)
+        {
+            player.name = payload.player.name;
+        } // end if
+    }; // end handlePlayerRenamed
 
     GameService.prototype.handleSpectatorJoined = function(payload)
     {

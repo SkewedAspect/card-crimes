@@ -163,6 +163,12 @@ PlayerClient.prototype._handleClientRename = function(name, respond)
     respond({
         confirm: true
     });
+
+    if(this.game)
+    {
+        // Broadcast to all players in our game
+        this.game._broadcast('player renamed', { player: this });
+    } // end if
 }; // end _handleClientRename
 
 PlayerClient.prototype._handleListGames = function(respond)
