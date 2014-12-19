@@ -491,6 +491,7 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
         client.game.currentJudge = { id: payload.judge };
         client.game.currentCall = payload.call;
         client.game.state = 'waiting';
+        client.game.submittedResponses = [];
     }; // end handleNextRound
 
     GameService.prototype.handleResponseSubmitted = function(payload)
