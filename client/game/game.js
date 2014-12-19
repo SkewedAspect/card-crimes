@@ -65,6 +65,7 @@ function GameController($scope, $routeParams, $modal, client, gameSvc)
     var pauseModalDef = {
         templateUrl: 'pauseModal.html',
         size: 'md',
+        scope: $scope,
         backdrop: 'static'
     };
 
