@@ -4,6 +4,7 @@
 // @module sockethandler.js
 //----------------------------------------------------------------------------------------------------------------------
 
+var gameManager = require('./game/manager');
 var PlayerClient = require('./clients/player');
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -23,6 +24,7 @@ function socketHandler(app, httpServer)
             // Set properties
             client.name = payload.name || client.name;
             client.secret = payload.secret || client.secret;
+            client.game = gameManager.games[payload.game];
 
             // Check our secret, to make sure this isn't a reconnect
             client.negotiateSecret(app.locals.clients[client.secret])

@@ -4,7 +4,7 @@
 // @module client.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function ClientServiceFactory($cookieStore, $location, socket)
+function ClientServiceFactory($cookieStore, $location, $routeParams, socket)
 {
     function ClientService()
     {
@@ -22,7 +22,8 @@ function ClientServiceFactory($cookieStore, $location, socket)
 
                 return socket.emit('client details', {
                     name: playerName,
-                    secret: secret
+                    secret: secret,
+                    game: $routeParams.id
                 })
                     .then(function(payload)
                     {
@@ -138,6 +139,7 @@ function ClientServiceFactory($cookieStore, $location, socket)
 angular.module('card-crimes.services').service('ClientService', [
     '$cookieStore',
     '$location',
+    '$routeParams',
     'SocketService',
     ClientServiceFactory
 ]);

@@ -197,6 +197,7 @@ function spectatorLeaveGame(gameID, spectator)
 //----------------------------------------------------------------------------------------------------------------------
 
 module.exports = {
+    games: games,
     listGames: listGames,
     newGame: newGame,
     joinGame: joinGame,

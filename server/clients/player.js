@@ -32,29 +32,58 @@ function PlayerClient(socket)
 PlayerClient.prototype._bindEventHandlers = function()
 {
     // Socket.io
-    this.socket.on('disconnect', this._handleDisconnect.bind(this));
+    this.socket.on('disconnect', this._bindEventHandler(this._handleDisconnect));
 
     // Client API
-    this.socket.on('client rename', this._handleClientRename.bind(this));
+    this.socket.on('client rename', this._bindEventHandler(this._handleClientRename));
 
     // Game API
-    this.socket.on('list games', this._handleListGames.bind(this));
-    this.socket.on('new game', this._handleCreateGame.bind(this));
-    this.socket.on('start game', this._handleStartGame.bind(this));
-    this.socket.on('add bot', this._handleAddBot.bind(this));
-    this.socket.on('remove bot', this._handleRemoveBot.bind(this));
-    this.socket.on('join game', this._handleJoinGame.bind(this));
-    this.socket.on('leave game', this._handleLeaveGame.bind(this));
-    this.socket.on('draw card', this._handleDrawCard.bind(this));
-    this.socket.on('submit cards', this._handleSubmitCards.bind(this));
-    this.socket.on('dismiss response', this._handleDismissResponse.bind(this));
-    this.socket.on('select response', this._handleSelectResponse.bind(this));
+    this.socket.on('list games', this._bindEventHandler(this._handleListGames));
+    this.socket.on('new game', this._bindEventHandler(this._handleCreateGame));
+    this.socket.on('start game', this._bindEventHandler(this._handleStartGame));
+    this.socket.on('add bot', this._bindEventHandler(this._handleAddBot));
+    this.socket.on('remove bot', this._bindEventHandler(this._handleRemoveBot));
+    this.socket.on('join game', this._bindEventHandler(this._handleJoinGame));
+    this.socket.on('leave game', this._bindEventHandler(this._handleLeaveGame));
+    this.socket.on('draw card', this._bindEventHandler(this._handleDrawCard));
+    this.socket.on('submit cards', this._bindEventHandler(this._handleSubmitCards));
+    this.socket.on('dismiss response', this._bindEventHandler(this._handleDismissResponse));
+    this.socket.on('select response', this._bindEventHandler(this._handleSelectResponse));
 
     // Deck API
-    this.socket.on('search decks', this._handleSearchDeck.bind(this));
-    this.socket.on('add deck', this._handleAddDeck.bind(this));
-    this.socket.on('remove deck', this._handleRemoveDeck.bind(this));
+    this.socket.on('search decks', this._bindEventHandler(this._handleSearchDeck));
+    this.socket.on('add deck', this._bindEventHandler(this._handleAddDeck));
+    this.socket.on('remove deck', this._bindEventHandler(this._handleRemoveDeck));
 }; // end _bindEventHandlers
+
+//----------------------------------------------------------------------------------------------------------------------
+
+PlayerClient.prototype._bindEventHandler = function(handler)
+{
+    var self = this;
+    return function()
+    {
+        try
+        {
+            handler.apply(self, arguments)
+        }
+        catch(exp)
+        {
+            var respond = _.last(arguments);
+            if(_.isFunction(respond))
+            {
+                logger.error('Unhandled Exception:\n', exp.stack);
+
+                respond({
+                    confirm: false,
+                    reason: 'unhandled-exception',
+                    message: exp.message,
+                    stack: exp.stack
+                });
+            } // end if
+        } // end try/catch
+    }
+}; // end _bindEventHandler
 
 //----------------------------------------------------------------------------------------------------------------------
 // Public API
@@ -69,13 +98,11 @@ PlayerClient.prototype.negotiateSecret = function(oldClient)
         if(oldClient)
         {
             self.id = oldClient.id;
-            self.secret = oldClient.secret;
-            self.score = oldClient.score;
-            self.game = oldClient.game;
 
             // If the previous client were part of a game, we need to remove it, and re-insert ourselves.
-            if(oldClient.game)
+            if(oldClient.game && oldClient.game.id == (self.game || {}).id)
             {
+                self.score = oldClient.score;
                 var game = oldClient.game;
 
                 _.remove(game.players, { id: oldClient.id });
@@ -85,17 +112,17 @@ PlayerClient.prototype.negotiateSecret = function(oldClient)
                 {
                     game.currentJudge = self;
                 } // end if
-            } // end if
 
-            // If the old client's disconnection timer is running, let's stop that.
-            if(oldClient.disconnectTimeout)
-            {
-                clearTimeout(oldClient.disconnectTimeout);
-                oldClient.disconnectTimeout = undefined;
-            } // end if
+                // If the old client's disconnection timer is running, let's stop that.
+                if(oldClient.disconnectTimeout)
+                {
+                    clearTimeout(oldClient.disconnectTimeout);
+                    oldClient.disconnectTimeout = undefined;
+                } // end if
 
-            // Just for good measure
-            oldClient.socket.removeAllListeners();
+                // Just for good measure
+                oldClient.socket.removeAllListeners();
+            } // end if
         } // end if
 
         resolve(self);
