@@ -9,6 +9,9 @@ function BrowseGameController($scope, gameSvc)
     Object.defineProperty($scope, 'games', {
         get: function(){ return gameSvc.games; }
     });
+
+    // Always refresh our list of games when the page is loaded.
+    gameSvc.listGames();
 } // end BrowseGameController
 
 // ---------------------------------------------------------------------------------------------------------------------
