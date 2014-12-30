@@ -57,8 +57,7 @@ That's it!
 
 ## Status
 
-Currently, we're working on our 1.0.0 version. That said, nothing works because we're still in the middle of building
-everything. Shortly, we should have the entire server done and unit tested, with the UI being the next thing we build.
+Currently, the game it completely playable. We are not very happy with the UI at the moment (it's more a proof of concept than a production ready design), but the core of everything's there. Feel free to check it out at [card-crimes.com](http://card-crimes.com).
 
 ## Contributing
 
