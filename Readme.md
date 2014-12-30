@@ -1,6 +1,6 @@
 # Card Crimes
 
-* Live Version: [card-crimes.skewedaspect.com](http://card-crimes.skewedaspect.com) (Not up, currently)
+* Live Version: [card-crimes.com](http://card-crimes.com)
 
 Card Crimes is an online version of games like Apples to Apples, or Cards Against Humanity. It is designed to be able to
 be used from either a mobile device, or a laptop. Our goal is to be the best online version of this type of card party
