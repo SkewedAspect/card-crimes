@@ -47,11 +47,11 @@ remove the adds.)
 Because our client and server are entirely self-contained, you can trivially run a local instance of Card Crimes, just
 in case our servers ever get overloaded, or because you might not have internet access. To do so:
 
-1) Install [node.js](http://nodejs.org/).
-2) Checkout the source code.
-3) From inside the project directory, run `npm install`.
-4) Once that finishes, run `npm start`.
-5) Go to the url printed out in the console.
+1. Install [node.js](http://nodejs.org/).
+2. Checkout the source code.
+3. From inside the project directory, run `npm install`.
+4. Once that finishes, run `npm start`.
+5. Go to the url printed out in the console.
 
 That's it!
 
