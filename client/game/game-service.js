@@ -60,11 +60,6 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
     // Public API
     // -----------------------------------------------------------------------------------------------------------------
 
-    GameService.prototype.setCurrentGame = function(gameID)
-    {
-        client.game = _.find(this.games, { id: gameID });
-    }; // end setCurrentGame
-
     GameService.prototype.hasSubmitted = function(playerID)
     {
         return (client.game && _.find(client.game.submittedResponses, { player: playerID }));
@@ -85,13 +80,13 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
             });
     }; // end listGames
 
-    GameService.prototype.createGame = function(name)
+    GameService.prototype.createGame = function(options)
     {
         var self = this;
         return client.initializedPromise
             .then(function()
             {
-                return socket.emit('new game', name)
+                return socket.emit('new game', options)
                     .then(function(payload)
                     {
                         client.game = payload.game;
@@ -248,11 +243,7 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
                     {
                         if(payload.confirm)
                         {
-                            // Joining a game implicitly sets our current game.
-                            self.setCurrentGame(gameID);
-
-                            // Merge the payload's game object into our own, to ensure we're up to date.
-                            _.merge(client.game, payload.game);
+                            client.game = payload.game;
 
                             if(client.game.state != 'initial')
                             {

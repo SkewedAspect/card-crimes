@@ -177,10 +177,11 @@ PlayerClient.prototype._handleListGames = function(respond)
         });
 }; // end _handleListGames
 
-PlayerClient.prototype._handleCreateGame = function(name, respond)
+PlayerClient.prototype._handleCreateGame = function(options, respond)
 {
+    console.log('Options:', options);
     var self = this;
-    gameManager.newGame(name, this)
+    gameManager.newGame(options, this)
         .then(function(game)
         {
             // Store this game as ours
