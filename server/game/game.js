@@ -33,10 +33,10 @@ function drawRandom(deck)
 
 //----------------------------------------------------------------------------------------------------------------------
 
-function Game(name, visibility, creator)
+function Game(options, creator)
 {
-    this.name = name;
-    this.visibility = visibility;
+    this.name = options.name;
+    this.visibility = options.visibility;
     this.id = shortId.generate();
     this.created = new Date();
     this.state = 'initial';

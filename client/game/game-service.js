@@ -80,13 +80,13 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
             });
     }; // end listGames
 
-    GameService.prototype.createGame = function(name, visibility)
+    GameService.prototype.createGame = function(options)
     {
         var self = this;
         return client.initializedPromise
             .then(function()
             {
-                return socket.emit('new game', name, visibility)
+                return socket.emit('new game', options)
                     .then(function(payload)
                     {
                         client.game = payload.game;
