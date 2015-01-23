@@ -6,7 +6,6 @@
 
 angular.module('card-crimes', [
         'ngRoute',
-        //'ngCookies',
 
         'lodash',
         'socket.io',
