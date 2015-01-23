@@ -5,17 +5,27 @@
         <h2 class="text-center">Name the Game</h2>
         <form role="form">
             <div class="col-sm-6 col-sm-offset-3">
-                <div class="input-group">
+                <div class="input-group form-group">
                     <input type="text" placeholder="Game Name" class="form-control" ng-model="gameName">
                     <span class="input-group-btn">
-                        <button type="submit" class="btn btn-success" ng-click="createGame(gameName)" title="New Game">
+                        <button type="submit" class="btn btn-success" ng-click="createGame()" title="New Game">
                             <i class="fa fa-plus"></i> <span class="hidden-xs">New Game</span>
                         </button>
-                        <!--button type="submit" class="btn btn-success" ng-click="game = { name: gameName }" title="New Game">
-                            <i class="fa fa-plus"></i> <span class="hidden-xs">New Game</span>
-                        </button-->
                     </span>
                 </div>
+                <hr>
+                <div class="form-group text-center">
+                    <div class="btn-group btn-group-sm">
+                        <button class="btn btn-default active" ng-model="visibilityRadio" btn-radio="'Public'">
+                            <i class="fa fa-unlock"></i> Public
+                        </button>
+                        <button class="btn btn-warning" ng-model="visibilityRadio" btn-radio="'Private'">
+                            <i class="fa fa-lock"></i> Private
+                        </button>
+                    </div>
+                    <p class="text-muted"><small>Private games are hidden from browsing. Anyone with the link can still join.</small></p>
+                </div>
+                <hr>
             </div>
         </form>
     </div>

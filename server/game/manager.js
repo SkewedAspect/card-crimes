@@ -39,19 +39,20 @@ function deleteGame(gameID)
  */
 function listGames()
 {
-    return Promise.resolve(_.values(games));
+    return Promise.resolve(_.values(_.where(games, { options: { visibility: 'Public' }})));
 } // end listGames
 
 /**
  * Creates a new game.
  *
  * @param {string} name - The name of the game (for display purposes only.)
+ * @param {string} visibility - Visibility level of the game, Public or Private
  * @param {PlayerClient} creator - The client that created this game.
  * @returns {Promise} Returns a promise resolved with an instance of the new game.
  */
-function newGame(name, creator)
+function newGame(name, options, creator)
 {
-    var game = new Game(name, creator);
+    var game = new Game(name, options, creator);
     games[game.id] = game;
 
     return Promise.resolve(game);

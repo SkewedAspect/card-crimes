@@ -9,6 +9,7 @@ function NewGameController($scope, $location, _, socket, client, gameSvc)
     $scope.step = 1;
     $scope.decks = {};
     $scope.currentPage = 1;
+    $scope.visibilityRadio = 'Public';
 
     Object.defineProperties($scope, {
         totalPages: {
@@ -44,9 +45,9 @@ function NewGameController($scope, $location, _, socket, client, gameSvc)
 
     // -----------------------------------------------------------------------------------------------------------------
 
-    $scope.createGame = function(name)
+    $scope.createGame = function()
     {
-        gameSvc.createGame(name)
+        gameSvc.createGame($scope.gameName, { visibility: $scope.visibilityRadio})
             .then(function()
             {
                 $scope.nextStep();

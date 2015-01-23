@@ -183,10 +183,10 @@ PlayerClient.prototype._handleListGames = function(respond)
         });
 }; // end _handleListGames
 
-PlayerClient.prototype._handleCreateGame = function(name, respond)
+PlayerClient.prototype._handleCreateGame = function(name, options, respond)
 {
     var self = this;
-    gameManager.newGame(name, this)
+    gameManager.newGame(name, options, this)
         .then(function(game)
         {
             // Store this game as ours
