@@ -50,9 +50,9 @@ function listGames()
  * @param {PlayerClient} creator - The client that created this game.
  * @returns {Promise} Returns a promise resolved with an instance of the new game.
  */
-function newGame(options, creator)
+function newGame(name, options, creator)
 {
-    var game = new Game(options, creator);
+    var game = new Game(name, options, creator);
     games[game.id] = game;
 
     return Promise.resolve(game);

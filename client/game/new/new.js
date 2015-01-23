@@ -47,7 +47,7 @@ function NewGameController($scope, $location, _, socket, client, gameSvc)
 
     $scope.createGame = function()
     {
-        gameSvc.createGame({ gameName: $scope.gameName, visibility: $scope.visibilityRadio})
+        gameSvc.createGame($scope.gameName, { visibility: $scope.visibilityRadio})
             .then(function()
             {
                 $scope.nextStep();
