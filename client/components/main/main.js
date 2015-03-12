@@ -6,8 +6,8 @@
 
 function MainController($scope, gameSvc)
 {
-    Object.defineProperty($scope, 'recentGames', {
-        get: function(){ return gameSvc.recentGames; }
+    Object.defineProperty($scope, 'currentGames', {
+        get: function(){ return gameSvc.currentGames; }
     });
 } // end MainController
 

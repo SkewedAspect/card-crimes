@@ -28,7 +28,7 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
     // -----------------------------------------------------------------------------------------------------------------
 
     GameService.prototype = {
-        get recentGames()
+        get currentGames()
         {
             return _.first(_.sortBy(this.games, 'created').reverse(), 5);
         }

@@ -17,13 +17,14 @@
 <div class="container">
     <div class="row">
         <div class="col-md-12">
-            <h2>Recent Games:</h2>
-            <div class="row" ng-hide="recentGames.length == 0">
-                <div class="col-md-3" ng-repeat="game in recentGames">
+            <h2>Current Games:</h2>
+            <div class="row" ng-hide="currentGames.length == 0">
+                <div class="col-md-3" ng-repeat="game in currentGames">
                     <game-summary game="game"></game-summary>
                 </div>
             </div>
-            <h4 ng-show="recentGames.length == 0" class="text-center">No games have been created, yet.</h4>
+            <h4 ng-show="currentGames.length == 0" class="text-center">No games are currently being played.</h4>
+            <div class="text-center"><a href="/game/new" class="btn btn-success">Start a New Game</a></div>
         </div>
     </div>
 
