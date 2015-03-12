@@ -90,7 +90,6 @@ function GameController($scope, $routeParams, $modal, client, gameSvc)
             // If we don't already have a game set, we join as a spectator
             if(!$scope.game)
             {
-                console.log('joining as a spectator...');
                 client.joinGamePromise = gameSvc.joinGame($scope.isPlayer, $routeParams.id);
             } // end if
 

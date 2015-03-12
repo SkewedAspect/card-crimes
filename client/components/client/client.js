@@ -53,8 +53,6 @@ function ClientServiceFactory(cookieStore, $location, $routeParams, socket)
         set game(val) {
             this._game = val;
 
-            console.log('setting game:', val);
-
             // If we are setting a game object, it's time to do some work to it.
             if(this._game)
             {
