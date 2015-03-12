@@ -39,7 +39,7 @@ function GameController($scope, $routeParams, $modal, client, gameSvc)
         gameTemplate: {
             get: function()
             {
-                return $scope.isPlayer ? '/game/player.html' : '/game/spectator.html';
+                return $scope.isPlayer ? '/components/game/player.html' : '/components/game/spectator.html';
             }
         },
         client: {

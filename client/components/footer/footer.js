@@ -9,7 +9,7 @@ function SiteFooterFactory()
     return {
         restrict: 'E',
         scope: true,
-        templateUrl: "/footer/footer.html"
+        templateUrl: "/components/footer/footer.html"
     };
 } // end SiteFooterFactory
 

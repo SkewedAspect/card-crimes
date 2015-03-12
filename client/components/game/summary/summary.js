@@ -28,7 +28,7 @@ function GameSummaryFactory($location, _, gameSvc)
         scope: {
             game: "="
         },
-        templateUrl: "/game/summary/summary.html",
+        templateUrl: "/components/game/summary/summary.html",
         controller: ['$scope', GameSummaryController],
         replace: true
     };

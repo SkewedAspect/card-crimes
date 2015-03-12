@@ -21,10 +21,10 @@ angular.module('card-crimes', [
         $locationProvider.html5Mode(true);
 
         $routeProvider
-            .when('/', { templateUrl: '/main/main.html', controller: 'MainController' })
-            .when('/game', { templateUrl: '/game/browse/browse.html', controller: 'BrowseGameController' })
-            .when('/game/new', { templateUrl: '/game/new/new.html', controller: 'NewGameController' })
-            .when('/game/:id', { templateUrl: '/game/game.html', controller: 'GameController' })
+            .when('/', { templateUrl: '/components/main/main.html', controller: 'MainController' })
+            .when('/game', { templateUrl: '/components/game/browse/browse.html', controller: 'BrowseGameController' })
+            .when('/game/new', { templateUrl: '/components/game/new/new.html', controller: 'NewGameController' })
+            .when('/game/:id', { templateUrl: '/components/game/game.html', controller: 'GameController' })
             .otherwise({redirectTo: '/'});
     }])
     .filter('renderResponse', function()
