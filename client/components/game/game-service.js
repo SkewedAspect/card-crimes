@@ -482,13 +482,11 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
 
     GameService.prototype.handleGamePaused = function()
     {
-        console.log('game paused!!');
         client.game.state = 'paused';
     }; // end handleGamePaused
 
     GameService.prototype.handleGameUnpaused = function(payload)
     {
-        console.log('game unpaused!!');
         client.game.state = 'payload.state';
     }; // end handleGameUnpaused
 
@@ -509,8 +507,6 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
 
     GameService.prototype.handleAllResponsesSubmitted = function(payload)
     {
-        console.log('all responses submitted!!!!');
-
         client.game.state = 'judging';
 
         // If we're the judge, then we pay attention to the payload.

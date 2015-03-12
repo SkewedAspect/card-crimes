@@ -61,7 +61,7 @@ function DeckSummaryFactory(_, gameSvc)
             deck: '=',
             game: '='
         },
-        templateUrl: "/deck/summary/summary.html",
+        templateUrl: "/components/deck/summary/summary.html",
         controller: ['$scope', DeckSummaryController],
         replace: true
     };

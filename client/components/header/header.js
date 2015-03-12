@@ -25,7 +25,7 @@ function SiteHeaderFactory(client)
     return {
         restrict: 'E',
         scope: true,
-        templateUrl: "/header/header.html",
+        templateUrl: "/components/header/header.html",
         controller: ['$scope', '$timeout', SiteHeaderController],
         replace: true
     };

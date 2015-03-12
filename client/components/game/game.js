@@ -39,7 +39,7 @@ function GameController($scope, $routeParams, $modal, client, gameSvc)
         gameTemplate: {
             get: function()
             {
-                return $scope.isPlayer ? '/game/player.html' : '/game/spectator.html';
+                return $scope.isPlayer ? '/components/game/player.html' : '/components/game/spectator.html';
             }
         },
         client: {
@@ -90,7 +90,6 @@ function GameController($scope, $routeParams, $modal, client, gameSvc)
             // If we don't already have a game set, we join as a spectator
             if(!$scope.game)
             {
-                console.log('joining as a spectator...');
                 client.joinGamePromise = gameSvc.joinGame($scope.isPlayer, $routeParams.id);
             } // end if
 
