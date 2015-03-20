@@ -2,7 +2,7 @@
 
     <!-- Step 1: Name the Game -->
     <div collapse="step != 1">
-        <h2 class="text-center">Name the Game</h2>
+        <h2 class="text-center">Name the Game:</h2>
         <form role="form">
             <div class="col-sm-6 col-sm-offset-3">
                 <div class="input-group form-group">
@@ -32,10 +32,7 @@
 
     <!-- Step 2: Select Decks -->
     <div collapse="step != 2">
-        <h2 class="text-center">Select Decks</h2>
-        <hr/>
-        <h4 class="current-decks">
-            Current Decks:
+        <h2 class="text-center">Select Decks:</h2>
             <span ng-repeat="deck in gameDecks">
                 <span class="label label-primary">
                     {{ deck.name }}
@@ -43,10 +40,24 @@
                 </span>
                 &nbsp;
             </span>
-        </h4>
         <hr/>
+        <h4>Suggested Decks:</h4>
+        <div class="row">
+            <div ng-hide="suggested.length > 0"  class="loader text-center">
+                <h4>Loading recommended decks...</h4>
+                <div class="progress" style="width: 60%; margin: auto">
+                    <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div ng-show="suggested.length > 0" class="col-md-3" ng-repeat="deck in suggested">
+                <deck-summary deck="deck" game="game" full="false"></deck-summary>
+            </div>
+        </div>
+        <hr style="margin-top: 0;">
         <form class="row" role="form">
-            <div class="col-sm-6 col-sm-offset-3">
+            <div class="col-sm-10 col-sm-offset-1">
                 <div class="input-group">
                     <input type="text" placeholder="Deck Name" class="form-control" ng-model="query">
                     <span class="input-group-btn">
@@ -59,15 +70,24 @@
         </form>
         <br/>
         <div class="row">
-            <div class="col-md-3" ng-repeat="deck in decks.data">
+            <div ng-hide="searchResults.resolved" class="loader text-center">
+                <h4>Searching for decks...</h4>
+                <div class="progress" style="width: 60%; margin: auto">
+                    <div class="progress-bar progress-bar-striped active" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+                        <span class="sr-only">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <h4 ng-hide="!searchResults.resolved || searchResults.results.length" class="text-center">No decks found.</h4>
+            <div ng-show="searchResults.resolved" class="col-md-3" ng-repeat="deck in searchResults.results">
                 <deck-summary deck="deck" game="game"></deck-summary>
             </div>
         </div>
-        <div class="page-footer">
+        <div ng-show="searchResults.resolved && searchResults.results.length" class="page-footer">
             <div class="page-count">
-                <span>{{ currentPage }} / {{ totalPages }}</span>
+                <span>{{ currentPage }} / {{ searchResults.totalPages }}</span>
             </div>
-            <pager total-items="decks.count" items-per-page="20" ng-model="currentPage"></pager>
+            <pager total-items="searchResults.total" items-per-page="searchResults.limit" ng-model="currentPage"></pager>
         </div>
         <hr>
         <button class="btn btn-success pull-right" ng-disabled="decksEmpty()" ng-click="nextStep()">
@@ -77,7 +97,7 @@
 
     <!-- Step 3: Add Bots -->
     <div collapse="step != 3">
-        <h2 class="text-center">Add Bots</h2>
+        <h2 class="text-center">Add Bots:</h2>
         <form class="row" role="form">
             <div class="col-sm-6 col-sm-offset-3">
                 <div class="input-group">

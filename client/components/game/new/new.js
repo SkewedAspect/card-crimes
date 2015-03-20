@@ -4,18 +4,24 @@
 // @module new.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function NewGameController($scope, $location, _, socket, client, gameSvc)
+function NewGameController($scope, $http, $location, Promise, _, socket, client, deckSvc, gameSvc)
 {
     $scope.step = 1;
-    $scope.decks = {};
+    $scope.searchResults = {};
+    $scope.suggested = [];
     $scope.currentPage = 1;
     $scope.visibilityRadio = 'Public';
 
     Object.defineProperties($scope, {
-        totalPages: {
+        currentPage: {
             get: function()
             {
-                return Math.ceil($scope.decks.count / 20) || 0;
+                return $scope.searchResults.page;
+            },
+            set: function(val)
+            {
+                console.log('setting page to:', val);
+                $scope.searchResults.page = val;
             }
         },
         bots: {
@@ -37,35 +43,35 @@ function NewGameController($scope, $location, _, socket, client, gameSvc)
 
     // -----------------------------------------------------------------------------------------------------------------
 
-    $scope.$watch('currentPage', function()
-    {
-        var offset = ($scope.currentPage - 1) * 20;
-        $scope.searchDecks($scope.query, offset);
-    });
-
-    // -----------------------------------------------------------------------------------------------------------------
-
     $scope.createGame = function()
     {
         gameSvc.createGame($scope.gameName, { visibility: $scope.visibilityRadio})
             .then(function()
             {
                 $scope.nextStep();
+            })
+            .then(function()
+            {
+                return deckSvc.getSuggested()
+                    .then(function(suggested)
+                    {
+                        $scope.suggested = suggested;
+                    });
+            })
+            .then(function()
+            {
+                return $scope.searchDecks();
             });
     }; // end createGame
 
-    $scope.searchDecks = function(query, offset)
+    $scope.searchDecks = function(query)
     {
-        offset = offset || 0;
-
-        // Store the query for pagination later
-        $scope.query = query;
-
-        // Search for the decks requested
-        socket.emit('search decks', query, offset)
-            .then(function(payload)
+        $scope.searchResults = {};
+        deckSvc.search(query)
+            .then(function(results)
             {
-                $scope.decks = payload.decks;
+                console.log('results:', results);
+                $scope.searchResults = results;
             });
     }; // end searchDecks
 
@@ -115,17 +121,20 @@ function NewGameController($scope, $location, _, socket, client, gameSvc)
     // -----------------------------------------------------------------------------------------------------------------
 
     // Start off with a call to searchDecks
-    $scope.searchDecks();
+    //$scope.searchDecks();
 } // end NewGameController
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 angular.module('card-crimes.controllers').controller('NewGameController', [
     '$scope',
+    '$http',
     '$location',
+    '$q',
     'lodash',
     'SocketService',
     'ClientService',
+    'DeckService',
     'GameService',
     NewGameController
 ]);

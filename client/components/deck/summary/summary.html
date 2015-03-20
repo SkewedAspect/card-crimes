@@ -1,7 +1,7 @@
 <div class="panel deck-summary" ng-class="{ 'panel-primary': selected, 'panel-default': !selected }" ng-click="select()">
     <div class="panel-body">
-        <a href="http://cardcastgame.com/browse/deck/{{ deck.code }}" class="view-link close" title="View on Cardcast"><i class="fa fa-external-link"></i></a>
-        <h4>{{ deck.name }}</h4>
+        <a href="http://cardcastgame.com/browse/deck/{{ deck.code }}" target="_blank" class="view-link close" title="View on Cardcast"><i class="fa fa-external-link"></i></a>
+        <h4 class="title" title="{{ deck.name }}">{{ deck.name }}<span ng-if="deck.name.length > 17" class="fade-box"></span></h4>
         <div class="count">
             <span class="badge call">{{ deck.call_count }}</span>
             <span class="badge response">{{ deck.response_count }}</span>
@@ -14,7 +14,9 @@
             <i class="fa" ng-class="{ 'fa-star': rating[3] == 'full', 'fa-star-half-o': rating[3] == 'half', 'fa-star-o': rating[3] == 'empty' }"></i>
             <i class="fa" ng-class="{ 'fa-star': rating[4] == 'full', 'fa-star-half-o': rating[4] == 'half', 'fa-star-o': rating[4] == 'empty' }"></i>
         </div>
-        <div class="author">{{ deck.author.username }}</div>
-        <div class="code text-danger">{{ deck.code }}</div>
+        <div ng-show="full"  class="footer">
+            <div class="code text-danger">{{ deck.code }}</div>
+            <div class="author">{{ deck.author.username }}</div>
+        </div>
     </div>
 </div>

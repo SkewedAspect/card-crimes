@@ -358,7 +358,7 @@ Game.prototype.leave = function(client)
     } // end if
 
     // Check to see if the person who left is currently the judge
-    if(client.id == this.currentJudge.id && this.state != 'paused')
+    if(this.state != 'initial' && this.state != 'paused' && client.id == this.currentJudge.id)
     {
         var newJudge = this._nextJudge();
 
@@ -531,7 +531,7 @@ Game.prototype.removeDeck = function(playCode)
  */
 Game.prototype.drawResponse = function()
 {
-    if(this.responses.length == 0)
+    if(this.responses.length == 0 && this.totalResponses.length > 0)
     {
         this.responses = this.totalResponses.slice(0);
     } // end if

@@ -8,6 +8,7 @@ function DeckSummaryFactory(_, gameSvc)
 {
     function DeckSummaryController($scope)
     {
+        $scope.full = $scope.full() !== undefined ? $scope.full() : true;
         $scope.rating = ['empty', 'empty', 'empty', 'empty', 'empty'];
 
         Object.defineProperty($scope, 'selected', {
@@ -59,7 +60,8 @@ function DeckSummaryFactory(_, gameSvc)
         restrict: 'E',
         scope: {
             deck: '=',
-            game: '='
+            game: '=',
+            full: '&'
         },
         templateUrl: "/components/deck/summary/summary.html",
         controller: ['$scope', DeckSummaryController],

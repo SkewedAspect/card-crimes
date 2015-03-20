@@ -4,16 +4,26 @@
 
 .deck-summary {
     position: relative;
-    padding-bottom: 30px;
-    min-height: 122px;
 
-    h4 {
+    .title {
+        position: relative;
         margin-top: 0;
         margin-bottom: 0;
-        margin-right: 15px;
+        margin-right: 7px;
 
         max-height: 2.2em;
         overflow: hidden;
+        white-space: nowrap;
+
+        .fade-box {
+            display: block;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            right: 0;
+            width: 2em;
+            background: linear-gradient(to right,rgba(255,255,255,0)0,#fff 100%);
+        }
     }
 
     .view-link {
@@ -22,6 +32,7 @@
         right: 7px;
 
         font-size: 1em;
+        z-index: 1000;
     }
 
     .rating {
@@ -34,11 +45,19 @@
         }
     }
 
-    .author {
-        position: absolute;
-        bottom: 15px;
-        left: 15px;
-        font-size: .95em;
+    .footer {
+        margin-top: 10px;
+
+        .author {
+            font-size: .95em;
+            color: #999;
+        }
+
+        .code {
+            float: right;
+            font-size: .95em;
+            font-weight: bold;
+        }
     }
 
     .count {
@@ -57,14 +76,6 @@
             margin-left: -2px;
             background-color: #099;
         }
-    }
-
-    .code {
-        position: absolute;
-        bottom: 15px;
-        right: 15px;
-        font-size: .95em;
-        font-weight: bold;
     }
 }
 
