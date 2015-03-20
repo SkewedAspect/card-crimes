@@ -18,6 +18,7 @@ function SiteHeaderFactory(client)
                 .then(function()
                 {
                     $scope.renaming = false;
+                    $scope.isCollapsed = true;
                 });
         }; // end rename
     } // end SiteHeaderController
