@@ -8,7 +8,7 @@ module.exports = function(grunt)
     grunt.initConfig({
         project: {
             js: ['client/**/*.js'],
-            less: ['client/less/**/*.less', 'client/**/*.less']
+            less: ['client/less/**/*.less', 'client/**/*.less', '!client/vendor/**/*.less']
         },
         less: {
             main: {
