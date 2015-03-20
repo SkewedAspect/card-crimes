@@ -6,6 +6,7 @@
 
 function BrowseGameController($scope, gameSvc)
 {
+    $scope.query = '';
     Object.defineProperty($scope, 'games', {
         get: function(){ return gameSvc.games; }
     });
