@@ -17,6 +17,13 @@ var logger = require('omega-logger').loggerFor(module);
 // Build the express app
 var app = express();
 
+// Add our project version as a header
+app.use(function(req, resp, next)
+{
+    resp.append('Version', package.version);
+    next();
+});
+
 // Set up our application routes
 app.use('/', router);
 
