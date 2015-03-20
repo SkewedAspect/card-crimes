@@ -90,15 +90,17 @@ function GameController($scope, $routeParams, $modal, client, gameSvc)
             // If we don't already have a game set, we join as a spectator
             if(!$scope.game)
             {
-                client.joinGamePromise = gameSvc.joinGame($scope.isPlayer, $routeParams.id);
+                client.joinGamePromise = gameSvc.joinGame($scope.isPlayer, $routeParams.id)
+                    .then(function()
+                    {
+                        if(client.responses.length < 10)
+                        {
+                            gameSvc.drawCards(10 - client.responses.length)
+                        } // end if
+                    }); // end then
             } // end if
-
-            if(client.responses.length < 10)
-            {
-                gameSvc.drawCards(10 - client.responses.length)
-            } // end if
-        });
-
+        }); // end then
+    
     // -----------------------------------------------------------------------------------------------------------------
     // Event Handlers
     // -----------------------------------------------------------------------------------------------------------------
