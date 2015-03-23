@@ -307,46 +307,49 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
     {
         numCards = numCards || 1;
 
-        return client.initializedPromise
-            .then(function()
-            {
-                var cardPromises = [];
-                _.each(_.range(numCards), function()
+        if(client.responses.length < 10)
+        {
+            return client.initializedPromise
+                .then(function()
                 {
-                    cardPromises.push(socket.emit('draw card')
-                        .then(function(payload)
-                        {
-                            if(payload.confirm)
-                            {
-                                return payload.card;
-                            }
-                            else
-                            {
-                                var error = new Error("Failed to draw card.");
-                                error.inner = payload.message;
-
-                                console.error("Failed to draw card:", error);
-
-                                throw error;
-                            } // end if
-                        }));
-                });
-
-                return cardPromises;
-            })
-            .then(function(cardPromises)
-            {
-                return Promise.all(cardPromises)
-                    .then(function(cards)
+                    var cardPromises = [];
+                    _.each(_.range(numCards), function()
                     {
-                        if(!_.isArray(client.responses))
-                        {
-                            client.responses = [];
-                        } // end if
+                        cardPromises.push(socket.emit('draw card')
+                            .then(function(payload)
+                            {
+                                if(payload.confirm)
+                                {
+                                    return payload.card;
+                                }
+                                else
+                                {
+                                    var error = new Error("Failed to draw card.");
+                                    error.inner = payload.message;
 
-                        client.responses = client.responses.concat(cards);
+                                    console.error("Failed to draw card:", error);
+
+                                    throw error;
+                                } // end if
+                            }));
                     });
-            });
+
+                    return cardPromises;
+                })
+                .then(function(cardPromises)
+                {
+                    return Promise.all(cardPromises)
+                        .then(function(cards)
+                        {
+                            if(!_.isArray(client.responses))
+                            {
+                                client.responses = [];
+                            } // end if
+
+                            client.responses = client.responses.concat(cards);
+                        });
+                });
+        }
     }; // end drawCards
 
     GameService.prototype.submitResponse = function(cards)
