@@ -56,15 +56,15 @@ app.use(session({
     saveUninitialized: true
 }));
 
-// Setup static serving
-app.use(express.static(path.resolve('./client')));
-
 // Add our project version as a header
 app.use(function(req, resp, next)
 {
     resp.append('Version', package.version);
     next();
 });
+
+// Setup static serving
+app.use(express.static(path.resolve('./client')));
 
 // Serve index.html
 app.get('/', routeUtils.serveIndex);
