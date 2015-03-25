@@ -46,7 +46,7 @@ function listGames()
  * Creates a new game.
  *
  * @param {string} name - The name of the game (for display purposes only.)
- * @param {string} visibility - Visibility level of the game, Public or Private
+ * @param {string} options - Options for the game.
  * @param {PlayerClient} creator - The client that created this game.
  * @returns {Promise} Returns a promise resolved with an instance of the new game.
  */
