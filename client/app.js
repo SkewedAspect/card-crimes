@@ -44,6 +44,9 @@ angular.module('card-crimes', [
 
 angular.module('card-crimes.services', []);
 angular.module('card-crimes.controllers', []);
-angular.module('card-crimes.directives', []);
+angular.module('card-crimes.directives', ['djds4rce.angular-socialshare']);
+angular.module('card-crimes.directives').run(function($FB){
+  $FB.init('1624511164452269');
+});
 
 // ---------------------------------------------------------------------------------------------------------------------

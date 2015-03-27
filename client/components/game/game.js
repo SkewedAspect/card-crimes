@@ -4,7 +4,7 @@
 // @module game.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GameController($scope, $routeParams, $modal, client, gameSvc)
+function GameController($scope, $routeParams, $location, $modal, client, gameSvc)
 {
     $scope.cards = { selected: [] };
     $scope.response = { selected: undefined };
@@ -57,6 +57,12 @@ function GameController($scope, $routeParams, $modal, client, gameSvc)
                 } // end if
 
                 return false;
+            }
+        },
+        url : {
+            get: function()
+            {
+                return $location.absUrl();
             }
         }
     });
@@ -304,6 +310,7 @@ function GameController($scope, $routeParams, $modal, client, gameSvc)
 angular.module('card-crimes.controllers').controller('GameController', [
     '$scope',
     '$routeParams',
+    '$location',
     '$modal',
     'ClientService',
     'GameService',

@@ -8,8 +8,31 @@
         <p class="text-muted">Once there are two or more human players, the game will continue.</p>
     </div>
     <div class="modal-footer">
-        <button ng-if="!isPlayer" class="btn btn-primary" ng-click="joinAsPlayer()"><i class="fa fa-share"></i> Join</button>
-        <a href="/" class="btn btn-danger"><i class="fa fa-sign-out"></i> Leave</a>
+        <div class="container-fluid ">
+            <div class="row">
+                <div id="modal-share" class="col-xs-12 col-sm-6">
+                    <table>
+                        <tr>
+                            <td>
+                                <div facebook class="facebookShare" data-url="{{ url }}" data-shares="shares">{{ shares }}</div>
+                            </td>
+                            <td>
+                                <div gplus class="g-plus" data-href="{{ url }}" data-action="share" data-annotation="none"></div>
+                            </td>
+                            <td>
+                                <a twitter data-count="none" data-url="{{ url }}"></a>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div id="modal-nav" class="col-xs-6">
+                    <div class="btn-group">
+                        <button ng-if="!isPlayer" class="btn btn-primary" ng-click="joinAsPlayer()"><i class="fa fa-share"></i> Join</button>
+                    </div>
+                    <a href="/" class="btn btn-danger"><i class="fa fa-sign-out"></i> Leave</a>
+                </div>
+            </div>
+        </div>
     </div>
 </script>
 
@@ -27,7 +50,7 @@
         </h1>
         <h3 class="text-right text-muted"><i>--{{ winningResponse.player.name }}</i></h3>
     </div>
-    <div ng-if="isPlayer"  class="modal-footer">
+    <div ng-if="isPlayer" class="modal-footer">
         <button class="btn btn-primary" ng-click="$close()"><i class="fa fa-sign-out"></i> Continue</button>
     </div>
 </script>
