@@ -44,7 +44,8 @@ router.get('/', function(req, resp)
 
 router.put('/', function(req, resp)
 {
-    //TODO: Create new game
+    var game = manager.newGame(req.body.name, req.body.options, req.body.decks);
+    resp.json(game);
 });
 
 router.get('/*', function(req, resp)

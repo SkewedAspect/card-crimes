@@ -9,18 +9,22 @@ var EventEmitter = require('events').EventEmitter;
 
 var _ = require('lodash');
 var Promise = require('bluebird');
+var shortId = require('shortid');
 
-var PlayerClient = require('./player');
+var Client = require('./client');
 
 //----------------------------------------------------------------------------------------------------------------------
 
-function RandomClient(name, game)
+function RandomBot(name, game)
 {
     // Set our socket as a plain EventEmitter.
-    PlayerClient.call(this, new EventEmitter());
+    Client.call(this, new EventEmitter());
 
     // Manually set the name
     this.name = name;
+
+    // Manually set our id by creating a fake session
+    this.socket.request = { session: { id: shortId.generate() }};
 
     // Set our type to 'bot', so the client has some clue who's a bot, and who isn't.
     this.type = 'bot';
@@ -29,36 +33,24 @@ function RandomClient(name, game)
     this.game = game;
 
     // Listen for the next round message
-    this.socket.on('next round', this.handleNextRound.bind(this));
-} // end RandomClient
+    this.socket.on('round start', this._handleRoundStart.bind(this));
+} // end RandomBot
 
-util.inherits(RandomClient, PlayerClient);
+util.inherits(RandomBot, Client);
 
-RandomClient.prototype.handleNextRound = function()
+RandomBot.prototype._handleRoundStart = function(payload)
 {
-    var self = this;
-    var responsePromises = [];
-    _.each(_.range(this.game.currentCall.numResponses), function()
+    var numResponses = payload.call.numResponses;
+    var responses = _.reduce(this.game.players[this.id].hand.slice(0, numResponses), function(results, card)
     {
-        responsePromises.push(self.game.drawResponse());
-    });
-
-    Promise.all(responsePromises)
-        .then(function(responses)
-        {
-            // Turn this into a list of card ids.
-            responses = _.reduce(responses, function(responses, response)
-            {
-                responses.push(response.id);
-                return responses;
-            }, []);
-
-            return self.game.submitResponse(self, responses);
-        });
-}; // end handleNextRound
+        results.push(card.id);
+        return results;
+    }, []);
+    this.socket.emit('submit response', responses);
+}; // end _handleRoundStart
 
 //----------------------------------------------------------------------------------------------------------------------
 
-module.exports = RandomClient;
+module.exports = RandomBot;
 
 //----------------------------------------------------------------------------------------------------------------------

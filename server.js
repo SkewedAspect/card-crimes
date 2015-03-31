@@ -29,7 +29,7 @@ var config = require('./config');
 var routeUtils = require('./server/routes/utils');
 var gameRouter = require('./server/routes/game');
 
-var socketHandler = require('./server/sockethandler');
+var clientMgr = require('./server/clients/clientMgr');
 
 //----------------------------------------------------------------------------------------------------------------------
 
@@ -45,7 +45,9 @@ app.use(routeUtils.errorLogger(logger));
 // Session support
 app.use(cookieParser());
 app.use(bodyParser.json());
-app.use(session({
+
+// Store this in app.locals for socket.io to use later
+app.locals.sessionMiddleware = session({
     secret: config.secret || 'nosecret',
     key: config.key || 'cardcrimes-session',
     resave: false,
@@ -54,7 +56,9 @@ app.use(session({
     // maxAge = 12hrs
     cookie: { maxAge: 1000 * 60 * 60 * 12},
     saveUninitialized: true
-}));
+});
+
+app.use(app.locals.sessionMiddleware);
 
 // Add our project version as a header
 app.use(function(req, resp, next)
@@ -82,7 +86,6 @@ var server = app.listen(config.port || 3000, function()
 });
 
 // Set up socket.io
-socketHandler(app, server);
-
+clientMgr.registerSocketIO(app, server);
 
 //----------------------------------------------------------------------------------------------------------------------
