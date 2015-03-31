@@ -11,6 +11,7 @@ angular.module('card-crimes', [
         'socket.io',
         'ui.bootstrap',
         'ipCookie',
+        'djds4rce.angular-socialshare',
 
         'card-crimes.services',
         'card-crimes.controllers',
@@ -27,6 +28,7 @@ angular.module('card-crimes', [
             .when('/game/:id', { templateUrl: '/components/game/game.html', controller: 'GameController' })
             .otherwise({redirectTo: '/'});
     }])
+    .run(function($FB){ $FB.init('1624511164452269'); })
     .filter('renderResponse', function()
     {
         return function(responseText)
@@ -44,9 +46,7 @@ angular.module('card-crimes', [
 
 angular.module('card-crimes.services', []);
 angular.module('card-crimes.controllers', []);
-angular.module('card-crimes.directives', ['djds4rce.angular-socialshare']);
-angular.module('card-crimes.directives').run(function($FB){
-  $FB.init('1624511164452269');
-});
+angular.module('card-crimes.directives', []);
+angular.module('card-crimes.directives');
 
 // ---------------------------------------------------------------------------------------------------------------------
