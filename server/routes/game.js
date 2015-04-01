@@ -37,7 +37,14 @@ router.get('/', function(req, resp)
         manager.listGames()
             .then(function(games)
             {
-                resp.json(games);
+                if(req.query.name)
+                {
+                    resp.json(_.filter(games, { name: req.query.name }));
+                }
+                else
+                {
+                    resp.json(games);
+                } // end if
             });
     });
 });

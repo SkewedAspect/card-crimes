@@ -23,7 +23,7 @@ angular.module('card-crimes', [
 
         $routeProvider
             .when('/', { templateUrl: '/components/main/main.html', controller: 'MainController' })
-            .when('/game', { templateUrl: '/components/game/browse/browse.html', controller: 'BrowseGameController' })
+            .when('/game', { templateUrl: '/components/browse/browse.html', controller: 'BrowseGameController' })
             .when('/game/new', { templateUrl: '/components/game/new/new.html', controller: 'NewGameController' })
             .when('/game/:id', { templateUrl: '/components/game/game.html', controller: 'GameController' })
             .otherwise({redirectTo: '/'});
