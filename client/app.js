@@ -29,13 +29,21 @@ angular.module('card-crimes', [
             .otherwise({redirectTo: '/'});
     }])
     .run(function($FB){ $FB.init('1624511164452269'); })
-    .filter('renderResponse', function()
+    .filter('renderCallResponse', function()
     {
         return function(responseText)
         {
             // Strip trailing periods
             return responseText.replace(/\.$/, '');
         }; // end renderResponse
+    })
+    .filter('renderResponse', function()
+    {
+        return function(responseText)
+        {
+            // Add a trailing period if needed
+            return responseText.replace(/\w$/, '$&.');
+        };
     });
 
 // ---------------------------------------------------------------------------------------------------------------------
