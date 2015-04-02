@@ -33,12 +33,7 @@ angular.module('card-crimes', [
     {
         return function(responseText)
         {
-            if(responseText[responseText.length - 1] != '.')
-            {
-                responseText += '.';
-            } // end if
-
-            return responseText;
+            return responseText.replace('.', '');
         }; // end renderResponse
     });
 
