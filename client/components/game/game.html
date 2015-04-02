@@ -45,7 +45,7 @@
         <h1 class="text-center">
             <span class="call" ng-repeat="snippet in winningResponse.call.text">
                 {{ snippet }}
-                <span ng-if="!$last" class="blank">{{ winningResponse.response[$index].displayText }}</span>
+                <span ng-if="!$last" class="blank">{{ winningResponse.response[$index].displayText | renderResponse }}</span>
             </span>
         </h1>
         <h3 class="text-right text-muted"><i>--{{ winningResponse.player.name }}</i></h3>
