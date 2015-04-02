@@ -62,7 +62,7 @@
                     <div class="col-xs-6 col-sm-3" ng-repeat="card in client.responses">
                         <div class="panel panel-default response-card" ng-class="{'panel-default': cards.selected.indexOf(card.id) == -1, 'panel-primary': cards.selected.indexOf(card.id) != -1}" ng-click="selectCard(card.id)">
                             <div class="panel-body">
-                                <h4>{{ card.displayText | renderResponse }}.</h4>
+                                <h4>{{ card.displayText | renderResponse }}<span ng-show="card.displayText.slice(-1) == '.'">.</span></h4>
                             </div>
                         </div>
                     </div>
@@ -78,7 +78,10 @@
                     <div class="panel panel-default response-card" ng-class="{ 'panel-default': response.selected != resp, 'panel-primary': response.selected == resp, 'non-interactive': !isJudge }" ng-click="selectResponse(resp)">
                         <div class="panel-body">
                             <div class="sub-response" ng-repeat="card in resp.cards">
-                                <h4>{{ card.displayText | renderResponse }}.</h4>
+                                <button class="pull-right close" ng-show="isJudge" ng-click="$event.stopPropagation()">
+                                    <i class="fa fa-close"></i>
+                                </button>
+                                <h4>{{ card.displayText | renderResponse }}<span ng-show="card.displayText.slice(-1) == '.'">.</span></h4>
                                 <hr ng-if="!$last">
                             </div>
                         </div>

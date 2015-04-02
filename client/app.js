@@ -34,8 +34,7 @@ angular.module('card-crimes', [
         return function(responseText)
         {
             // Strip trailing periods
-            var re = /.$/;
-            return responseText.replace(re, '');
+            return responseText.replace(/\.$/, '');
         }; // end renderResponse
     });
 

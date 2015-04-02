@@ -25,7 +25,7 @@
                      ng-click="selectResponse(resp)">
                     <div class="panel-body">
                         <div class="sub-response" ng-repeat="card in resp.cards">
-                            <h4>{{ card.displayText | renderResponse }}.</h4>
+                            <h4>{{ card.displayText | renderResponse }}<span ng-show="card.displayText.slice(-1) == '.'">.</span></h4>
                             <hr ng-if="!$last">
                         </div>
                     </div>
