@@ -42,6 +42,9 @@ ClientManager.prototype._handleConnection = function(socket)
     // Bind our disconnect handler
     socket.on('disconnect', this._handleDisconnect.bind(this, client));
 
+    // Send the client it's session
+    socket.emit('new client', client);
+
     this.emit('connection', client);
 }; // end _handleConnection
 

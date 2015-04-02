@@ -6,7 +6,7 @@
 
 function SiteHeaderFactory(client)
 {
-    function SiteHeaderController($scope, $timeout)
+    function SiteHeaderController($scope)
     {
         $scope.isCollapsed = true;
         $scope.client = client;

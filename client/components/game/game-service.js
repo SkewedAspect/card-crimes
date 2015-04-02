@@ -22,7 +22,7 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
         }, 120000);
 
         // Bind events
-        this._bindEventHandlers();
+        //this._bindEventHandlers();
     } // end GameService
 
     // -----------------------------------------------------------------------------------------------------------------
@@ -70,7 +70,7 @@ function GameServiceFactory(Promise, $interval, $rootScope, _, socket, client)
     GameService.prototype.listGames = function()
     {
         var self = this;
-        return client.initializedPromise
+        return socket.initializedPromise
             .then(function()
             {
                 return socket.emit('list games')
