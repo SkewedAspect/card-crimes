@@ -33,7 +33,9 @@ angular.module('card-crimes', [
     {
         return function(responseText)
         {
-            return responseText.replace('.', '');
+            // Strip trailing periods
+            var re = /.$/;
+            return responseText.replace(re, '');
         }; // end renderResponse
     });
 
