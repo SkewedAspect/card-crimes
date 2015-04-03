@@ -15,6 +15,8 @@ function Client(socket)
 
     // Listen for specific messages
     this.socket.on('join game', this._handleJoinGame.bind(this));
+    this.socket.on('watch game', this._handleWatchGame.bind(this));
+    this.socket.on('unwatch game', this._handleUnwatchGame.bind(this));
     this.socket.on('rename client', this._handleRenameClient.bind(this));
 } // end Client
 
@@ -45,17 +47,35 @@ Client.prototype = {
     }
 }; // end prototype
 
-Client.prototype._handleJoinGame = function(payload)
+Client.prototype._handleJoinGame = function(gameID)
 {
+    console.log('handling join game', gameID);
     // Prevent a circular reference
     var gameMgr = require('../game/manager');
-    var game = gameMgr[payload.game];
+    var game = gameMgr.games[gameID];
 
-    // Store the game
-    this.game = game;
+    if(game)
+    {
+        console.log('got game!');
+        // Store the game
+        this.game = game;
 
-    game.join(this);
+        console.log('joining game!', gameID);
+
+        // Actually join the game
+        game.join(this);
+    } // end if
 }; // end _handleJoinGame
+
+Client.prototype._handleWatchGame = function(gameID)
+{
+    this.socket.join(gameID);
+}; // end _handleWatchGame
+
+Client.prototype._handleUnwatchGame = function(gameID)
+{
+    this.socket.leave(gameID);
+}; // end _handleUnwatchGame
 
 Client.prototype._handleRenameClient = function(name, respond)
 {

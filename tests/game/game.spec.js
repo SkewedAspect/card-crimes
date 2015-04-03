@@ -26,23 +26,17 @@ var testDeck = require('../data/testdeck');
 var rooms = {};
 
 clientMgr.io = {
-    of: function(ns)
+    to: function(room)
     {
-        return {
-            to: function(room)
-            {
-                var ee = rooms[room];
-                if(!ee)
-                {
-                    ee = new EventEmitter();
-                    ee.ns = ns;
-                    ee.room = room;
-                    rooms[room] = ee;
-                } // end if
+        var ee = rooms[room];
+        if(!ee)
+        {
+            ee = new EventEmitter();
+            ee.room = room;
+            rooms[room] = ee;
+        } // end if
 
-                return ee;
-            }
-        }
+        return ee;
     }
 };
 
@@ -398,7 +392,7 @@ describe('Game', function()
 
                 room.once('player joined', function(payload)
                 {
-                    expect(payload.player.id).to.equal(winner.id);
+                    expect(payload.client.id).to.equal(winner.id);
                     expect(payload.score).to.equal(1);
                     done();
                 });
@@ -441,7 +435,7 @@ describe('Game', function()
 
                 room.once('player joined', function(payload)
                 {
-                    expect(payload.player.id).to.equal(winner.id);
+                    expect(payload.client.id).to.equal(winner.id);
                     expect(payload.score).to.equal(0);
                     done();
                 });

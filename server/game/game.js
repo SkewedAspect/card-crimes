@@ -45,7 +45,7 @@ function Game(name, options, decks)
     this._state = 'initial';
 
     // The channel we broadcast our game events over
-    this.channel = clientMgr.io.of('games');
+    this.channel = clientMgr.io;
 
     // The current list of players in the game
     this.players = {};
@@ -85,8 +85,8 @@ function Game(name, options, decks)
 } // end Game
 
 Game.prototype = {
-    get humanPlayers(){ return _.filter(this.players, function(player){ return player.type != 'bot'; }); },
-    get botPlayers(){ return _.filter(this.players, function(player){ return player.type == 'bot'; }); },
+    get humanPlayers(){ return _.map(_.filter(this.players, function(session){ return session.client.type != 'bot'; }), 'client'); },
+    get botPlayers(){ return _.map(_.filter(this.players, function(session){ return session.client.type == 'bot'; }), 'client');; },
     get enoughPlayers(){ return this.humanPlayers.length > 1; },
     get maxPlayers(){ return Math.floor(this.totalResponses / 10); },
     get room(){ return this.channel.to(this.id); },
@@ -195,7 +195,7 @@ Game.prototype._nextJudge = function()
     } // end if
 
     // Return the next judge
-    return this.humanPlayers[nextJudgeIndex].client;
+    return this.humanPlayers[nextJudgeIndex];
 }; // end _nextJudge
 
 Game.prototype._addBot = function(name)
@@ -207,7 +207,10 @@ Game.prototype._addBot = function(name)
 
     // Build the client object
     var client = new RandomBot(name, this);
-    this.players[client.id] = client;
+    this.players[client.id] = {
+        client: client,
+        score: 0
+    };
 
     // Inform players that a 'new player' has joined
     this._broadcast('player joined', { player: client }, client);
@@ -493,7 +496,7 @@ Game.prototype.join = function(client)
     this._drawUp(session);
 
     // We inform other players that a new player's joined.
-    this._broadcast('player joined', { player: client, score: session.score });
+    this._broadcast('player joined', session);
 
     // Check to see if we should unpause the game
     if(this.state == 'paused' && this.enoughPlayers)
