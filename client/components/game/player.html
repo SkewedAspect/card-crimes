@@ -78,7 +78,7 @@
                     <div class="panel panel-default response-card" ng-class="{ 'panel-default': response.selected != resp, 'panel-primary': response.selected == resp, 'non-interactive': !isJudge }" ng-click="selectResponse(resp)">
                         <div class="panel-body">
                             <div class="sub-response" ng-repeat="card in resp.cards">
-                                <button class="pull-right close" ng-show="isJudge" ng-click="$event.stopPropagation()">
+                                <button class="close" ng-show="isJudge && $first" ng-click="$event.stopPropagation()">
                                     <i class="fa fa-close"></i>
                                 </button>
                                 <h4>{{ card.displayText | renderResponse }}</h4>
