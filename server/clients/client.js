@@ -49,18 +49,14 @@ Client.prototype = {
 
 Client.prototype._handleJoinGame = function(gameID)
 {
-    console.log('handling join game', gameID);
     // Prevent a circular reference
     var gameMgr = require('../game/manager');
     var game = gameMgr.games[gameID];
 
     if(game)
     {
-        console.log('got game!');
         // Store the game
         this.game = game;
-
-        console.log('joining game!', gameID);
 
         // Actually join the game
         game.join(this);
