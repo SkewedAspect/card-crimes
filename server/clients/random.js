@@ -20,11 +20,11 @@ function RandomBot(name, game)
     // Set our socket as a plain EventEmitter.
     Client.call(this, new EventEmitter());
 
+    // Manually set our id by creating a fake session
+    this.socket.request = { session: { id: shortId.generate(), save: function(){} }};
+
     // Manually set the name
     this.name = name;
-
-    // Manually set our id by creating a fake session
-    this.socket.request = { session: { id: shortId.generate() }};
 
     // Set our type to 'bot', so the client has some clue who's a bot, and who isn't.
     this.type = 'bot';

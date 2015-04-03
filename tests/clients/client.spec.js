@@ -15,7 +15,7 @@ var Client = require('../../server/clients/client');
 // ---------------------------------------------------------------------------------------------------------------------
 
 var mockSocket = new EventEmitter();
-mockSocket.request = { session: { id: 'test-id' } };
+mockSocket.request = { session: { id: 'test-id', save: function(){} } };
 
 // ---------------------------------------------------------------------------------------------------------------------
 
