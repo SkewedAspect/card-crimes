@@ -1,0 +1,11 @@
+<div class="panel panel-default">
+    <div class="panel-body">
+        <div class="text-center name">
+            <span class="score text-muted">{{ session.score || 0 }}</span>
+            <i class="fa" ng-class="getUserClass(session.client.id)"></i>
+            &nbsp;{{ session.client.name }}&nbsp;
+            <i class="type text-muted fa"
+               ng-class="{ 'fa-user': session.client.type != 'bot', 'fa-android': session.client.type == 'bot' }"></i>
+        </div>
+    </div>
+</div>
