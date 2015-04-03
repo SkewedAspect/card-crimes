@@ -6,9 +6,9 @@
         <form role="form">
             <div class="col-sm-6 col-sm-offset-3">
                 <div class="input-group form-group">
-                    <input type="text" placeholder="Game Name" class="form-control" ng-model="gameName">
+                    <input type="text" placeholder="Game Name" class="form-control" ng-model="newGame.name">
                     <span class="input-group-btn">
-                        <button type="submit" class="btn btn-success" ng-click="createGame()" title="New Game">
+                        <button type="submit" class="btn btn-success" ng-click="startCreation()" title="New Game">
                             <i class="fa fa-plus"></i> <span class="hidden-xs">New Game</span>
                         </button>
                     </span>
@@ -16,10 +16,10 @@
                 <hr>
                 <div class="form-group text-center">
                     <div class="btn-group btn-group-sm">
-                        <button class="btn btn-default active" ng-model="visibilityRadio" btn-radio="'Public'">
+                        <button class="btn btn-default active" ng-model="newGame.options.visibility" btn-radio="'Public'">
                             <i class="fa fa-unlock"></i> Public
                         </button>
-                        <button class="btn btn-warning" ng-model="visibilityRadio" btn-radio="'Private'">
+                        <button class="btn btn-warning" ng-model="newGame.options.visibility" btn-radio="'Private'">
                             <i class="fa fa-lock"></i> Private
                         </button>
                     </div>
@@ -33,7 +33,7 @@
     <!-- Step 2: Select Decks -->
     <div collapse="step != 2">
         <h2 class="text-center">Select Decks:</h2>
-            <span ng-repeat="deck in gameDecks">
+            <span ng-repeat="deck in newGame.decks">
                 <span class="label label-primary">
                     {{ deck.name }}
                     <span class="remove-btn" ng-click="removeDeck(deck)"><i class="fa fa-times"></i></span>
@@ -52,7 +52,7 @@
                 </div>
             </div>
             <div ng-show="suggested.length > 0" class="col-md-3" ng-repeat="deck in suggested">
-                <deck-summary deck="deck" game="game" full="false"></deck-summary>
+                <deck-summary deck="deck" decks="newGame.decks" full="false"></deck-summary>
             </div>
         </div>
         <hr style="margin-top: 0;">
@@ -80,7 +80,7 @@
             </div>
             <h4 ng-hide="!searchResults.resolved || searchResults.results.length" class="text-center">No decks found.</h4>
             <div ng-show="searchResults.resolved" class="col-md-3" ng-repeat="deck in searchResults.results">
-                <deck-summary deck="deck" game="game"></deck-summary>
+                <deck-summary deck="deck" decks="newGame.decks"></deck-summary>
             </div>
         </div>
         <div ng-show="searchResults.resolved && searchResults.results.length" class="page-footer">
@@ -115,11 +115,11 @@
         <div class="row">
             <div class="col-sm-6 col-sm-offset-3">
                 <ul class="list-group">
-                    <li class="list-group-item" ng-repeat="bot in bots">
-                        <button type="button" class="close" style="margin-top: -2px" ng-click="removeBot(bot.id)">
+                    <li class="list-group-item" ng-repeat="botName in newGame.options.bots track by $index">
+                        <button type="button" class="close" style="margin-top: -2px" ng-click="removeBot(botName)">
                             <span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
                         </button>
-                        {{ bot.name }}
+                        {{ botName }}
                     </li>
                 </ul>
             </div>

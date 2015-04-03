@@ -49,7 +49,7 @@ router.get('/', function(req, resp)
     });
 });
 
-router.put('/', function(req, resp)
+router.post('/', function(req, resp)
 {
     var game = manager.newGame(req.body.name, req.body.options, req.body.decks);
     resp.json(game);

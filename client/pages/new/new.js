@@ -6,6 +6,12 @@
 
 function NewGameController($scope, $http, $location, Promise, _, socket, client, deckSvc, gameSvc)
 {
+    $scope.newGame = {
+        name: '',
+        options: { visibility: 'Public', bots: [] },
+        decks: []
+    };
+
     $scope.step = 1;
     $scope.searchResults = {};
     $scope.suggested = [];
@@ -20,24 +26,8 @@ function NewGameController($scope, $http, $location, Promise, _, socket, client,
             },
             set: function(val)
             {
-                console.log('setting page to:', val);
                 $scope.searchResults.page = val;
             }
-        },
-        bots: {
-            get: function()
-            {
-                return _.filter(($scope.game || {}).players, { type: 'bot' });
-            }
-        },
-        gameDecks: {
-            get: function()
-            {
-                return _.sortBy(_.values(($scope.game || {}).decks), 'name');
-            }
-        },
-        game: {
-            get: function(){ return client.game; }
         }
     });
 
@@ -45,24 +35,20 @@ function NewGameController($scope, $http, $location, Promise, _, socket, client,
 
     $scope.createGame = function()
     {
-        gameSvc.createGame($scope.gameName, { visibility: $scope.visibilityRadio})
-            .then(function()
-            {
-                $scope.nextStep();
-            })
-            .then(function()
-            {
-                return deckSvc.getSuggested()
-                    .then(function(suggested)
-                    {
-                        $scope.suggested = suggested;
-                    });
-            })
-            .then(function()
-            {
-                return $scope.searchDecks();
-            });
     }; // end createGame
+
+    $scope.startCreation = function()
+    {
+        // Start populating our list of decks, and move on.
+        $scope.searchDecks();
+        $scope.nextStep();
+        deckSvc.getSuggested()
+            .then(function(suggested)
+            {
+                $scope.suggested = suggested;
+
+            });
+    }; // end startCreation
 
     $scope.searchDecks = function(query)
     {
@@ -77,35 +63,39 @@ function NewGameController($scope, $http, $location, Promise, _, socket, client,
 
     $scope.removeDeck = function(deck)
     {
-        gameSvc.removeDeck(deck);
+        _.remove($scope.newGame.decks, { code: deck.code });
     }; // end removeDeck
 
     $scope.decksEmpty = function()
     {
-        return _.isEmpty(($scope.game || {}).decks);
+        return _.isEmpty($scope.newGame.decks);
     }; // end decksNotEmpty
 
     $scope.finishSetup = function()
     {
-        gameSvc.startGame()
-            .then(function()
+        // Since the server expects our decks as a list of strings, we pull some crafty lodash magic, and make it so.
+        var game = _.defaults({
+            decks: _.map($scope.newGame.decks, 'code')
+        }, $scope.newGame);
+
+        // Tell the server to create a new game!
+        $http.post('/game', game)
+            .success(function(game)
             {
-                $location.path('/game/' + $scope.game.id);
+                console.log('game:', game);
+                $location.path('/game/' + game.id);
             });
     }; // end finishSetup
 
     $scope.addBot = function(name)
     {
-        gameSvc.addBot(name)
-            .then(function()
-            {
-                $scope.botName = "";
-            });
+        name = name || "Rando Cardrissian";
+        $scope.newGame.options.bots.push(name);
     }; // end addBot
 
-    $scope.removeBot = function(id)
+    $scope.removeBot = function(name)
     {
-        gameSvc.removeBot(id);
+        _.remove($scope.newGame.options.bots, function(value){ return value === name; });
     }; // end removeBot
 
     $scope.nextStep = function()

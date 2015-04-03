@@ -4,7 +4,7 @@
 // @module summary
 // ---------------------------------------------------------------------------------------------------------------------
 
-function DeckSummaryFactory(_, gameSvc)
+function DeckSummaryFactory(_)
 {
     function DeckSummaryController($scope)
     {
@@ -14,7 +14,7 @@ function DeckSummaryFactory(_, gameSvc)
         Object.defineProperty($scope, 'selected', {
             get: function()
             {
-                    return $scope.deck.code in (($scope.game || {}).decks || {});
+                return !!(_.find($scope.decks, { code: $scope.deck.code }));
             }
         });
 
@@ -45,13 +45,13 @@ function DeckSummaryFactory(_, gameSvc)
         {
             if($scope.selected)
             {
-                // Remove the deck with the game service
-                gameSvc.removeDeck($scope.deck);
+                // Remove ourself from the list of decks passed in.
+                _.remove($scope.decks, { code: $scope.deck.code });
             }
             else
             {
-                // Select the deck with the game service.
-                gameSvc.addDeck($scope.deck);
+                // Add ourself to the list of decks passed in.
+                $scope.decks.push($scope.deck);
             } // end if
         }; // end select
     } // end DeckSummaryController
@@ -60,7 +60,7 @@ function DeckSummaryFactory(_, gameSvc)
         restrict: 'E',
         scope: {
             deck: '=',
-            game: '=',
+            decks: '=',
             full: '&'
         },
         templateUrl: "/components/deck/summary/summary.html",

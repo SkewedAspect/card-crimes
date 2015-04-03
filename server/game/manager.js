@@ -56,7 +56,7 @@ function newGame(name, options, decks)
 
     //TODO: Fire an event on the socket to notify of new games
 
-    return Promise.resolve(game);
+    return game;
 } // end newGame
 
 //TODO: This code is no longer going to be called. We need to rework it into the logic of Game.
