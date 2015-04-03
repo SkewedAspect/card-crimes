@@ -4,22 +4,34 @@
 // @module browse.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function BrowseGameController($scope, gameSvc)
+function BrowseGameController($scope, $http, _)
 {
-    $scope.query = '';
-    Object.defineProperty($scope, 'games', {
-        get: function(){ return gameSvc.games; }
-    });
+    $scope.query = undefined;
+    $scope.games = [];
+    $scope.searching = false;
 
-    // Always refresh our list of games when the page is loaded.
-    gameSvc.listGames();
+    $scope.search = function()
+    {
+        $scope.searching = true;
+        var name = _.isEmpty($scope.query) ? undefined : $scope.query;
+        $http.get('/game', { params: { name: name } })
+            .success(function(games)
+            {
+                $scope.games = games;
+                $scope.searching = false;
+            });
+    }; // end search
+
+    // Populate with an initial search
+    $scope.search();
 } // end BrowseGameController
 
 // ---------------------------------------------------------------------------------------------------------------------
 
 angular.module('card-crimes.controllers').controller('BrowseGameController', [
     '$scope',
-    'GameService',
+    '$http',
+    'lodash',
     BrowseGameController
 ]);
 

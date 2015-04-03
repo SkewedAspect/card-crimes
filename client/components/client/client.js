@@ -4,80 +4,28 @@
 // @module client.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function ClientServiceFactory(cookieStore, $location, $routeParams, socket)
+function ClientServiceFactory(socketSvc)
 {
     function ClientService()
     {
-        this.events = [];
-        this.responses = [];
-        var self = this;
+        this.session = {};
 
-        // We only consider ourselves initialized once the server gives us our client details.
-        this.initializedPromise = socket.initializedPromise
-            .then(function()
-            {
-                // Check our cookies for our previous values
-                var playerName = cookieStore('playerName');
-                var secret = cookieStore('secret');
-
-                return socket.emit('client details', {
-                    name: playerName,
-                    secret: secret,
-                    game: $routeParams.id
-                })
-                    .then(function(payload)
-                    {
-                        self.id = payload.id;
-                        self.name = payload.name;
-                        self.secret = payload.secret;
-                        self.game = payload.game;
-
-                        // Save the details
-                        cookieStore('playerName', payload.name, { expires: 24, expirationUnit: 'hours' });
-                        cookieStore('secret', payload.secret, { expires: 2, expirationUnit: 'hours' });
-                    });
-            })
-            .then(function()
-            {
-                if(self.game)
-                {
-                    $location.path('/game/' + self.game.id);
-                } // end if
-            });
+        socketSvc.on('new client', this._handleNewClient.bind(this))
     } // end ClientService
 
     ClientService.prototype = {
-        get game() {
-            return this._game;
-        },
-        set game(val) {
-            this._game = val;
-
-            // If we are setting a game object, it's time to do some work to it.
-            if(this._game)
-            {
-                this._game.submittedResponses = this._game.submittedResponses || [];
-                this._game.players = this._game.players || [];
-                this._game.spectators = this._game.spectators || [];
-
-                if(!this._game.humanPlayers)
-                {
-                    Object.defineProperty(this._game, 'humanPlayers', {
-                        get: function()
-                        {
-                            return _.filter(this.players, function(player)
-                            {
-                                return player.type != 'bot';
-                            });
-                        }
-                    });
-                } // end if
-            } // end if
-
-            // Process any waiting events
-            this.processEvents();
-        } // end set game
+        get name(){ return this.session.name; }
     }; // end prototype
+
+    // -----------------------------------------------------------------------------------------------------------------
+    // Event Handlers
+    // -----------------------------------------------------------------------------------------------------------------
+
+    ClientService.prototype._handleNewClient = function(session)
+    {
+        // What we get is, really, just the session object.
+        this.session = session;
+    }; // end _handleNewClient
 
     // -----------------------------------------------------------------------------------------------------------------
     // Public API
@@ -86,46 +34,16 @@ function ClientServiceFactory(cookieStore, $location, $routeParams, socket)
     ClientService.prototype.rename = function(name)
     {
         var self = this;
-        return this.initializedPromise
+        return socketSvc.initializedPromise
             .then(function()
             {
-                return socket.emit('client rename', name)
+                return socketSvc.emit('rename client', name)
                     .then(function()
                     {
-                        self.name = name;
-                        cookieStore('playerName', name, { expires: 24, expirationUnit: 'hours' });
+                        self.session.name = name;
                     });
             });
     }; // end rename
-
-    // -----------------------------------------------------------------------------------------------------------------
-
-    ClientService.prototype.buildEventHandler = function(callback)
-    {
-        return function()
-        {
-            if(this.game)
-            {
-                callback.apply(this, arguments)
-            }
-            else if(!this.leaving)
-            {
-                this.events.push({ callback: callback, args: arguments });
-            } // end if
-        }.bind(this);
-    }; // end _buildEventHandler
-
-    ClientService.prototype.processEvents = function()
-    {
-        var self = this;
-        _.each(this.events, function(event)
-        {
-            event.callback.apply(self, event.args);
-        });
-
-        // Clear the events
-        this.events = [];
-    }; // end _processEvents
 
     // -----------------------------------------------------------------------------------------------------------------
 
@@ -135,9 +53,6 @@ function ClientServiceFactory(cookieStore, $location, $routeParams, socket)
 // ---------------------------------------------------------------------------------------------------------------------
 
 angular.module('card-crimes.services').service('ClientService', [
-    'ipCookie',
-    '$location',
-    '$routeParams',
     'SocketService',
     ClientServiceFactory
 ]);

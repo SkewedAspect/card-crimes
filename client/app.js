@@ -22,10 +22,10 @@ angular.module('card-crimes', [
         $locationProvider.html5Mode(true);
 
         $routeProvider
-            .when('/', { templateUrl: '/components/main/main.html', controller: 'MainController' })
-            .when('/game', { templateUrl: '/components/game/browse/browse.html', controller: 'BrowseGameController' })
-            .when('/game/new', { templateUrl: '/components/game/new/new.html', controller: 'NewGameController' })
-            .when('/game/:id', { templateUrl: '/components/game/game.html', controller: 'GameController' })
+            .when('/', { templateUrl: '/pages/main/main.html', controller: 'MainController' })
+            .when('/game', { templateUrl: '/pages/browse/browse.html', controller: 'BrowseGameController' })
+            .when('/game/new', { templateUrl: '/pages/new/new.html', controller: 'NewGameController' })
+            .when('/game/:id', { templateUrl: '/pages/game/game.html', controller: 'GameController' })
             .otherwise({redirectTo: '/'});
     }])
     .run(function($FB){ $FB.init('1624511164452269'); })

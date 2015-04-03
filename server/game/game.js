@@ -8,6 +8,7 @@ var _ = require('lodash');
 var shortId = require('shortid');
 var Promise = require('bluebird');
 
+var clientMgr = require('../clients/clientMgr');
 var api = require('../api');
 var errors = require('../errors');
 
@@ -33,51 +34,77 @@ function drawRandom(deck)
 
 //----------------------------------------------------------------------------------------------------------------------
 
-function Game(name, options, creator)
+function Game(name, options, decks)
 {
+    var self = this;
+
     this.name = name;
     this.options = options;
     this.id = shortId.generate();
     this.created = new Date();
-    this.state = 'initial';
-    this.creator = creator;
+    this._state = 'initial';
+
+    // The channel we broadcast our game events over
+    this.channel = clientMgr.io.of('games');
 
     // The current list of players in the game
-    this.players = [];
+    this.players = {};
 
-    // Automatically add the creator to the game
-    this.players.push(creator);
-
-    // The current list of spectators in the game
-    this.spectators = [];
-
-    // This is stored in a way that makes it easy to add/remove decks
-    this.decks = {};
+    // Add bots
+    _.each(options.bots, this._addBot.bind(this));
 
     // These are generated when the game starts, or we run out of cards
     this.calls = [];
     this.responses = [];
 
+    // This is our source set of decks
+    this.decks = {};
+
     // Changed every round
-    this.currentJudge = undefined;
-    this.currentCall = undefined;
+    this.judge = undefined;
+    this.call = undefined;
     this.submittedResponses = {};
+
+    // Check to make sure we have enough decks
+    if(!_.isArray(decks) &&_.isEmpty(decks))
+    {
+        throw new Error("Can't start a game without at least one deck!");
+    } // end if
+
+    // Populate our list of source decks
+    Promise.resolve(decks)
+        .each(function(playCode) { return self._addDeck(playCode); })
+        .then(function()
+        {
+            // Build our decks list
+            self._buildDeck();
+
+            // Start a new round
+            self._newRound();
+        });
 } // end Game
 
 Game.prototype = {
-    get humanPlayers()
-    {
-        return _.filter(this.players, function(player)
-        {
-            return player.type != 'bot';
-        });
-    },
-    get enoughPlayers(){ return this.humanPlayers.length > 1; }
+    get humanPlayers(){ return _.filter(this.players, function(player){ return player.type != 'bot'; }); },
+    get botPlayers(){ return _.filter(this.players, function(player){ return player.type == 'bot'; }); },
+    get enoughPlayers(){ return this.humanPlayers.length > 1; },
+    get maxPlayers(){ return Math.floor(this.totalResponses / 10); },
+    get room(){ return this.channel.to(this.id); },
+    get state(){ return this._state; },
+    set state(val) { this._state = val; this._broadcast(val); }
 };
 
 //----------------------------------------------------------------------------------------------------------------------
 // Internal API
 //----------------------------------------------------------------------------------------------------------------------
+
+Game.prototype._bindEventHandlers = function(client)
+{
+    client.socket.on('leave game', this._handleLeaveGame.bind(this, client));
+    client.socket.on('submit response', this._handleSubmitResponse.bind(this, client));
+    client.socket.on('dismiss response', this._handleDismissResponse.bind(this, client));
+    client.socket.on('select response', this._handleSelectResponse.bind(this, client));
+}; // end _bindEventHandler
 
 Game.prototype._buildDeck = function()
 {
@@ -100,6 +127,17 @@ Game.prototype._buildDeck = function()
     this.totalResponses = this.responses.slice(0);
 }; // end _buildDeck
 
+Game.prototype._addDeck = function(playCode)
+{
+    var self = this;
+    return api.deck(playCode)
+        .then(function(deck)
+        {
+            self.decks[playCode] = deck;
+            return deck;
+        });
+}; // end _addDeck
+
 Game.prototype._sanitizeSubmittedResponses = function()
 {
     var self = this;
@@ -121,7 +159,7 @@ Game.prototype._sanitizeSubmittedResponses = function()
 
 Game.prototype._checkResponses = function()
 {
-    var numPlayers = this.players.length - 1;
+    var numPlayers = _.keys(this.players).length - 1;
     return numPlayers == _.keys(this.submittedResponses).length;
 }; // end _checkResponses
 
@@ -148,51 +186,67 @@ Game.prototype._nextJudge = function()
     var nextJudgeIndex = 0;
 
     // Get the index of the next judge
-    if(this.currentJudge)
+    if(this.judge)
     {
-        nextJudgeIndex = _.findIndex(this.humanPlayers, { id: this.currentJudge.id }) + 1;
+        nextJudgeIndex = _.findIndex(this.humanPlayers, { id: this.judge.id }) + 1;
 
         // Loop around if we're over the size of our human players
         nextJudgeIndex = nextJudgeIndex >= this.humanPlayers.length ? 0 : nextJudgeIndex;
     } // end if
 
     // Return the next judge
-    return this.humanPlayers[nextJudgeIndex];
+    return this.humanPlayers[nextJudgeIndex].client;
 }; // end _nextJudge
+
+Game.prototype._addBot = function(name)
+{
+    var RandomBot = require('../clients/random');
+
+    // Default the name
+    name = name || "Rando Cardrissian";
+
+    // Build the client object
+    var client = new RandomBot(name, this);
+    this.players[client.id] = client;
+
+    // Inform players that a 'new player' has joined
+    this._broadcast('player joined', { player: client }, client);
+
+    return Promise.resolve(client);
+}; // end _addBot
 
 Game.prototype._newRound = function()
 {
     var self = this;
 
-    // Ensure we're in the right state
-    if(this.state != 'new round')
+    // Check to see if we're in a valid state to start a round
+    if(!this.enoughPlayers)
     {
-        this.state = 'new round';
-    } // end if
-
-    // Clean out any submitted responses from the last round
-    this.submittedResponses = {};
-
-    // Set the current judge.
-    this.currentJudge = this._nextJudge();
-
-    // Draw the new call
-    this._drawCall()
-        .then(function(call)
+        this.state = 'paused';
+    }
+    else
+    {
+        // Ensure we're in the right state
+        if(this.state != 'new round')
         {
-            self.state = 'waiting';
-            self.currentCall = call;
-            self._broadcast('next round', { judge: self.currentJudge.id, call: call });
-        })
-        .then(function()
-        {
-            // Check to see if we should pause the game
-            if(!self.enoughPlayers)
+            this.state = 'new round';
+        } // end if
+
+        // Clean out any submitted responses from the last round
+        this.submittedResponses = {};
+
+        // Set the current judge.
+        this.judge = this._nextJudge();
+
+        // Draw the new call
+        this._drawCall()
+            .then(function(call)
             {
-                self.state = 'paused';
-                self._broadcast('game paused');
-            } // end if
-        });
+                self.call = call;
+                self.state = 'waiting';
+                self._broadcast('round start', { judge: self.judge.id, call: call });
+            });
+    } // end if
 }; // end _newRound
 
 Game.prototype._drawCall = function()
@@ -205,165 +259,80 @@ Game.prototype._drawCall = function()
     return Promise.resolve(drawRandom(this.calls));
 }; // end _drawCall
 
-Game.prototype._broadcast = function(type, payload, skipClient)
+Game.prototype._drawResponse = function()
 {
-    skipClient = skipClient || {};
-
-    // Broadcast to players
-    _.forEach(this.players, function(player)
+    // Check to see if we need to shuffle the discard pile
+    if(this.responses.length == 0)
     {
-        if(player.id != skipClient.id && player.socket)
+        // Reset our list of possible responses, filtering out those responses that are currently in other players'
+        // hands.
+        this.responses = _.reduce(this.totalResponses.slice(0), function(results, response)
         {
-            player.socket.emit(type, payload);
-        } // end if
-    });
+            var found  = false;
+            _.forIn(self.players, function(session)
+            {
+                found = _.some(session.hand, 'id', response.id);
+            });
 
-    // Broadcast to spectators
-    _.forEach(this.spectators, function(spectator)
+            if(!found)
+            {
+                results.push(repsonse);
+            } // end if
+
+            return results;
+        });
+    } // end if
+
+    return Promise.resolve(drawRandom(this.calls));
+}; // end _drawResponse
+
+Game.prototype._drawUp = function(player)
+{
+    var self = this;
+    var numToDraw = 10 - player.hand.length;
+
+    player.hand = _.reduce(_.range(numToDraw), function(hand)
     {
-        if(spectator.id != skipClient.id && spectator.socket)
-        {
-            spectator.socket.emit(type, payload);
-        } // end if
+        hand.push(self._drawResponse());
+        return hand;
+    }, player.hand);
+
+    // Tell the client about it's new hand
+    player.client.socket.emit('hand', player.hand);
+}; // end drawUp
+
+Game.prototype._broadcast = function(type, payload)
+{
+    // Send over socket.io
+    this.room.emit(type, payload);
+
+    // Send to our bots
+    _.each(this.botPlayers, function(bot)
+    {
+        bot.socket.emit(type, payload);
     });
 }; // end _broadcast
 
 //----------------------------------------------------------------------------------------------------------------------
-// Public API
+// Event Handlers
 //----------------------------------------------------------------------------------------------------------------------
 
-/**
- * Starts the game.
- *
- * @returns {Promise} Returns a promise that is always resolved.
- */
-Game.prototype.start = function()
+Game.prototype._handleLeaveGame = function(client)
 {
-    if(_.keys(this.decks).length > 0)
-    {
-        // We assume the creator is the person starting the game.
-        this._broadcast('game started', undefined, this.creator);
+    this._broadcast('player left', { player: client });
+    client.socket.removeAllListeners();
+    delete this.players[client.id];
 
-        // Set the state to be 'new round'.
-        this.state = 'new round';
-
-        // We build our deck from the previously selected Cardcast decks.
-        this._buildDeck();
-
-        // Schedule the start of the new round for the next tick.
-        setImmediate(this._newRound.bind(this));
-
-        return Promise.resolve();
-    }
-    else if(_.keys(this.decks).length == 0)
-    {
-        return Promise.reject(new Error("Cannot start a game without at least one deck."));
-    } // end if
-}; // end start
-
-/**
- * Renames the game.
- *
- * @param {string} name - The name to rename the game to.
- * @returns {Promise} Returns a promise that is always resolved.
- */
-Game.prototype.rename = function(name)
-{
-    var self = this;
-    return this._checkState('initial', 'rename()')
-        .then(function()
-        {
-            self.name = name;
-
-            // We assume the creator is the person doing the rename.
-            self._broadcast('game renamed', { name: name }, self.creator);
-        });
-}; // end rename
-
-/**
- * Adds a player to the game.
- *
- * @param {PlayerClient} client - The client object representing the player who just joined.
- * @returns {Promise} Returns a promise that is always resolved.
- */
-Game.prototype.join = function(client)
-{
-    // Reset the client's score
-    client.score = 0;
-
-    // Check for existing player
-    var player = _.find(this.players, { id: client.id });
-
-    // If the player doesn't already exist...
-    if(!player)
-    {
-        this.players.push(client);
-        this._broadcast('player joined', { player: client }, client);
-
-        // If our player is currently added as a spectator, remove them
-        _.remove(this.spectators, { id: client.id });
-
-        // Check to see if we should unpause the game
-        if(this.state == 'paused' && this.enoughPlayers)
-        {
-            // Figure out which state we should be in
-            if(this._checkResponses())
-            {
-                this.state = 'judging';
-
-                self._broadcast('all responses submitted', { responses: self._sanitizeSubmittedResponses() });
-            }
-            else if(this.currentCall && this.currentJudge)
-            {
-                this.state = 'waiting'
-            }
-            else
-            {
-                // Not sure how we got here, so let's just start a new round.
-                logger.warn("Couldn't determine the next state.");
-                this.state = 'next round';
-
-                // Schedule the start of the new round for the next tick.
-                setImmediate(this._newRound.bind(this));
-            } // end if
-
-            this._broadcast('game unpaused', {state: this.state});
-        } // end if
-
-        return Promise.resolve();
-    }
-    else
-    {
-        logger.warn("Player attempting to join game they are already participating in.");
-        return Promise.reject(new errors.AlreadyPlayer(this));
-    } // end if
-}; // end join
-
-/**
- * Removes a player from the game.
- *
- * @param {PlayerClient} client - The client object representing the player who just left.
- * @returns {Promise} Returns a promise that is always resolved.
- */
-Game.prototype.leave = function(client)
-{
-    _.remove(this.players, { id: client.id });
-    this._broadcast('player left', { player: client.id }, client);
-
-    // Check to see if we should pause the game
-    if(!this.enoughPlayers && this.state != 'initial')
+    // Check to see if we have enough players to keep playing
+    if(!this.enoughPlayers)
     {
         this.state = 'paused';
-        this._broadcast('game paused');
     } // end if
 
-    // Check to see if the person who left is currently the judge
-    if(this.state != 'initial' && this.state != 'paused' && client.id == this.currentJudge.id)
+    // Check to see if the player who left is the current judge
+    if(this.judge.id = client.id)
     {
         var newJudge = this._nextJudge();
-
-        // Set the new judge
-        this.currentJudge = newJudge;
 
         // Remove the new judge's response.
         this.submittedResponses = _.transform(this.submittedResponses, function(result, response, responseID)
@@ -373,6 +342,9 @@ Game.prototype.leave = function(client)
                 result[responseID] = response;
             } // end if
         });
+
+        // Set the new judge
+        this.judge = newJudge;
 
         // We need to tell the client about the chance in judge.
         this._broadcast('new judge', { judge: newJudge, responses: this._sanitizeSubmittedResponses() });
@@ -384,270 +356,173 @@ Game.prototype.leave = function(client)
             this._broadcast('all responses submitted', { responses: this._sanitizeSubmittedResponses() });
         } // end if
     } // end if
+}; // end _handleLeaveGame
 
-    return Promise.resolve();
-}; // end leave
-
-/**
- * Adds a spectator to the game.
- *
- * @param {PlayerClient} client - The client object representing the spectator who just joined.
- * @returns {Promise} Returns a promise that is always resolved.
- */
-Game.prototype.spectatorJoin = function(client)
-{
-    // Check for existing player
-    var player = _.find(this.players, { id: client.id });
-
-    // If the player doesn't already exist...
-    if(!player)
-    {
-        // Check for existing spectator
-        var spectator = _.find(this.spectators, { id: client.id });
-
-        // If the spectator doesn't already exist...
-        if(!spectator)
-        {
-            this.spectators.push(client);
-            this._broadcast('spectator joined', {spectator: client}, client);
-
-            return Promise.resolve();
-        }
-        else
-        {
-            logger.warn("Spectator attempting to join game they are already watching.");
-            return Promise.reject(new Error("Spectator attempting to join game they are already watching."));
-        } // end if
-    }
-    else
-    {
-        return Promise.reject(new errors.AlreadyPlayer(this));
-    } // end if
-}; // end spectatorJoin
-
-/**
- * Removes a spectator from the game.
- *
- * @param {PlayerClient} client - The client object representing the spectator who just left.
- * @returns {Promise} Returns a promise that is always resolved.
- */
-Game.prototype.spectatorLeave = function(client)
-{
-    _.remove(this.spectators, { id: client.id });
-    this._broadcast('spectator left', { spectator: client.id }, client);
-
-    return Promise.resolve();
-}; // end spectatorLeave
-
-/**
- * Add a random AI player to the game. Random players will generate their responses at random, and submit them.
- *
- * @param {string} [name] - The name of the Random player to add.
- * @returns {Promise} Returns a promise that is always resolved.
- */
-Game.prototype.addRandomPlayer = function(name)
-{
-    var RandomClient = require('../clients/random');
-
-    // Default the name
-    name = name || "Rando Cardrissian";
-
-    // Build the client object
-    var client = new RandomClient(name, this);
-    this.players.push(client);
-
-    // Inform players that a 'new player' has joined
-    this._broadcast('player joined', { player: client }, client);
-
-    return Promise.resolve(client);
-}; // end addRandomPlayer
-
-/**
- * Remove a random AI player from the game.
- *
- * @param {string} id - The id of the Random player to remove.
- * @returns {Promise} Returns a promise that is always resolved.
- */
-Game.prototype.removeRandomPlayer =  function(id)
-{
-    var RandomClient = require('../clients/random');
-    var client = _.find(this.players, { id: id });
-
-    if(client instanceof RandomClient)
-    {
-        this._broadcast('player left', { player: id }, client);
-
-        _.remove(this.players, {id: id});
-
-        return Promise.resolve();
-    }
-    else
-    {
-        return Promise.reject(new Error("Player with id '" + id + "' is not a bot!"));
-    } // end if
-}; // end removeRandomPlayer
-
-/**
- * Adds a deck to the game. This is only usable while the game is in the `'initial'` state.
- *
- * @param {string} playCode - The Cardcast play code of the deck to add.
- * @returns {Promise} Returns a promise that is resolved if the deck was successfully added.
- */
-Game.prototype.addDeck = function(playCode)
+//TODO: We need to check to make sure that we're submitting the correct number of responses.
+Game.prototype._handleSubmitResponse = function(client, cardIDs)
 {
     var self = this;
-    return this._checkState('initial', 'addDeck()')
-        .then(function()
-        {
-            return api.deck(playCode)
-                .then(function(deck)
-                {
-                    self.decks[playCode] = deck;
-                    return deck;
-                });
-        });
-}; // end addDeck
-
-/**
- * Removes a deck from the game. This is only usable while the game is in the `'initial'` state.
- *
- * @param {string} playCode - The Cardcast play code of the deck to remove.
- * @returns {Promise} Returns a promise that is resolved if the deck was successfully removed.
- */
-Game.prototype.removeDeck = function(playCode)
-{
-    var self = this;
-    return this._checkState('initial', 'removeDeck()')
-        .then(function()
-        {
-            delete self.decks[playCode];
-        });
-}; // end removeDeck
-
-/**
- * Draws a single, random response, removing it from the list of cards able to the drawn.
- *
- * @returns {Promise} Returns a Promise that is resolved to the response card object.
- */
-Game.prototype.drawResponse = function()
-{
-    if(this.responses.length == 0 && this.totalResponses.length > 0)
-    {
-        this.responses = this.totalResponses.slice(0);
-    } // end if
-
-    return Promise.resolve(drawRandom(this.responses));
-}; // end drawResponse
-
-/**
- * Submits a response (or array of responses) to be judged.
- *
- * @param {PlayerClient} player - The Client object representing the player who submitted the response.
- * @param {string|string[]} cardIDs - The ID of the cards submitted in the response. If an array, order is important;
- * the blanks will be filled in the order they appear.
- * @returns {Promise} Returns a Promise that is resolved with the new id of the submitted response.
- */
-Game.prototype.submitResponse = function(player, cardIDs)
-{
-    var self = this;
-    return this._checkState(['waiting', 'paused'], 'submitResponse()')
+    var session = this.players[client.id];
+    this._checkState(['waiting', 'paused'], '_handleSubmitResponse()')
         .then(function()
         {
             // Ensure that it's always an array.
-            if(!_.isArray(cardIDs))
+            cardIDs = [].concat(cardIDs);
+
+            // Remove the responses from our player's hand
+            _.each(cardIDs, function(cardID)
             {
-                cardIDs = [cardIDs];
-            } // end if
+                _.remove(session.hand, { id: cardID});
+            });
 
             // Create a new Response object
             var response = {
                 id: shortId.generate(),
-                player: player,
+                player: client,
                 cards: cardIDs
             };
 
             // Add the submitted response
             self.submittedResponses[response.id] = response;
 
-            // Inform other players that this player has submitted their response.
+            // Inform other clients that this client has submitted their response.
             self._broadcast('response submitted', {
-                    response: response.id,
-                    responses: self._sanitizeSubmittedResponses(),
-                    player: player.id
-                }, player);
+                response: response.id,
+                responses: self._sanitizeSubmittedResponses(),
+                player: client.id
+            }, client);
+
+            // Draw back up to 10 cards in the player's hand
+            self._drawUp(session);
 
             // We check the responses, to see if we should change state.
             if(self._checkResponses() && self.state != 'paused')
             {
                 self.state = 'judging';
-
                 self._broadcast('all responses submitted', { responses: self._sanitizeSubmittedResponses() });
             } // end if
-
-            // Return the response id
-            return response.id;
         });
-}; // end submitResponse
+}; // end _handleSubmitResponse
 
-/**
- * Dismisses a response from consideration. This is only callable by the current judge.
- *
- * @param {string} responseID - The id of the response to dismiss (as was returned from `submitResponse()`).
- * @returns {Promise} Returns a promise that is resolved if the dismissal works.
- */
-Game.prototype.dismissResponse = function(responseID)
+Game.prototype._handleDismissResponse = function(client, responseID)
 {
     var self = this;
-    return this._checkState('judging', 'dismissResponse()')
+    this._checkState('judging', '_handleDismissResponse()')
         .then(function()
         {
-            // Get the dismissed response
-            var response = self.submittedResponses[responseID];
+            if(client.id == self.judge.id)
+            {
+                // Get the dismissed response
+                var response = self.submittedResponses[responseID];
 
-            // Remove the dismissed response from submittedResponses
-            delete self.submittedResponses[responseID];
+                // Remove the dismissed response from submittedResponses
+                delete self.submittedResponses[responseID];
 
-            // Tell the players of the dismissal.
-            self._broadcast('dismissed response', { response: responseID, player: response.player }, self.currentJudge);
+                // Tell the players of the dismissal.
+                self._broadcast('dismissed response', { response: responseID, player: response.player }, self.judge);
+            }
+            else
+            {
+                logger.warn("Client '%s' attempted to dismiss a response.", client.id);
+            } // end if
         });
-}; // end dismissResponse
+}; // end _handleDismissResponse
 
-/**
- * Selects a response as the winning response.
- *
- * @param {string} responseID - The id of the response to select (as was returned from `submitResponse()`).
- * @returns {Promise} Returns a promise that is resolved if the selection works.
- */
-Game.prototype.selectResponse = function(responseID)
+Game.prototype._handleSelectResponse = function(client, responseID)
 {
     var self = this;
-    return this._checkState('judging', 'selectResponse()')
+    this._checkState('judging', '_handleSelectResponse()')
         .then(function()
         {
-            var response = self.submittedResponses[responseID];
-            response.player.score += 1;
+            if(client.id == self.judge.id)
+            {
+                var response = self.submittedResponses[responseID];
+                self.players[response.player.id].score += 1;
 
-            self._broadcast('selected response', {
+                self._broadcast('selected response', {
                     response: {
                         id: response.id,
                         player: response.player
                     }
                 });
 
-            // Set the state to be 'new round'
-            self.state = 'new round';
-
-            // Schedule the start of the new round for the next tick
-            setImmediate(self._newRound.bind(self));
-
-            return Promise.resolve();
+                // Schedule the start of the new round for the next tick
+               setImmediate(self._newRound.bind(self));
+            }
+            else
+            {
+                logger.warn("Client '%s' attempted to select a response.", client.id);
+            } // end if
         });
-}; // end selectResponse
+}; // end _handleSelectResponse
+
+//----------------------------------------------------------------------------------------------------------------------
+// Public API
+//----------------------------------------------------------------------------------------------------------------------
+
+/**
+ * Adds a player to the game.
+ *
+ * @param {PlayerClient} client - The client object representing the player who just joined.
+ * @returns {Promise} Returns a promise that is always resolved.
+ */
+Game.prototype.join = function(client)
+{
+    // Connect up the socket.io calls to client.socket
+    this._bindEventHandlers(client);
+
+    // Check for reconnecting player
+    var session = this.players[client.id];
+
+    if(!session)
+    {
+        session = {
+            score: 0,
+            client: client,
+            hand:[]
+        };
+
+        this.players[client.id] = session;
+    }
+    else
+    {
+        session.client = client;
+    } // end if
+
+    // Draw up to 10 cards for our hand
+    this._drawUp(session);
+
+    // We inform other players that a new player's joined.
+    this._broadcast('player joined', { player: client, score: session.score });
+
+    // Check to see if we should unpause the game
+    if(this.state == 'paused' && this.enoughPlayers)
+    {
+        // Figure out which state we should be in
+        if(this._checkResponses())
+        {
+            this.state = 'judging';
+
+            self._broadcast('all responses submitted', { responses: self._sanitizeSubmittedResponses() });
+        }
+        else if(this.call && this.judge)
+        {
+            this.state = 'waiting'
+        }
+        else
+        {
+            this.state = 'new round';
+
+            // Schedule the start of the new round for the next tick.
+            setImmediate(this._newRound.bind(this));
+        } // end if
+    } // end if
+}; // end join
 
 /**
  * Converts the Game object into a simple object that can be easily converted to JSON.
  *
- * @returns {{id: string, name: string, state: string, players: PlayerClient[], spectators: PlayerClient[], currentCall: Card, currentJudge: PlayerClient, submittedResponses: []}}
+ * @returns {{id: string, name: string, state: string, players: PlayerClient[], spectators: PlayerClient[], call: Card, judge: PlayerClient, submittedResponses: []}}
  */
 Game.prototype.toJSON = function()
 {
@@ -672,12 +547,13 @@ Game.prototype.toJSON = function()
         id: this.id,
         name: this.name,
         decks: decks,
+        call: this.call,
+        judge: this.judge,
         state: this.state,
         created: this.created,
         players: this.players,
+        maxPlayers: this.maxPlayers,
         spectators: this.spectators,
-        currentCall: this.currentCall,
-        currentJudge: this.currentJudge,
         submittedResponses: submittedResponses
     }
 }; // end toJSON

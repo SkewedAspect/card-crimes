@@ -1,5 +1,5 @@
 //----------------------------------------------------------------------------------------------------------------------
-// Brief description for utils.js module.
+// Route Utilities
 //
 // @module utils.js
 //----------------------------------------------------------------------------------------------------------------------
@@ -33,14 +33,24 @@ function buildBasicErrorLogger(logger)
 function serveIndex(request, response)
 {
     response.setHeader("Content-Type", "text/html");
-    fs.createReadStream(path.resolve('./client/index.html')).pipe(response);
+    fs.createReadStream(path.resolve(__dirname + '/../../' + 'client/index.html')).pipe(response);
 } // end serveIndex
+
+// Either serve 'index.html', or run json handler
+function interceptHTML(response, jsonHandler)
+{
+    response.format({
+        html: serveIndex,
+        json: jsonHandler
+    });
+} // end interceptHTML
 
 //----------------------------------------------------------------------------------------------------------------------
 
 module.exports = {
-    requestLogger: buildBasicErrorLogger,
+    requestLogger: buildBasicRequestLogger,
     errorLogger: buildBasicErrorLogger,
+    interceptHTML: interceptHTML,
     serveIndex: serveIndex
 }; // end exports
 
