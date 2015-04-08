@@ -94,16 +94,7 @@
         <!-- Players -->
         <div class="row players">
             <div class=" player col-xs-6" ng-repeat="player in game.players">
-                <div class="panel panel-default">
-                    <div class="panel-body">
-                        <div class="text-center name">
-                            <span class="score text-muted">{{ player.score || 0 }}</span>
-                            <i class="fa" ng-class="getUserClass(player.id)"></i>
-                            &nbsp;{{ player.name }}&nbsp;
-                            <i class="type text-muted fa" ng-class="{ 'fa-user': player.type != 'bot', 'fa-android': player.type == 'bot' }"></i>
-                        </div>
-                    </div>
-                </div>
+                <player session="session" game="game"></player>
             </div>
         </div>
         

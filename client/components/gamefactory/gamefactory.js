@@ -4,7 +4,7 @@
 // @module gamefactory.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GameFactory(socketSvc)
+function GameFactory(socketSvc, clientSvc)
 {
     function Game(gameState)
     {
@@ -30,18 +30,35 @@ function GameFactory(socketSvc)
 
     Game.prototype._bindEventHandlers = function()
     {
+        // States
+        socketSvc.on('paused', this._handleStateChange.bind(this, 'paused'));
+        socketSvc.on('new round', this._handleStateChange.bind(this, 'new round'));
+        socketSvc.on('waiting', this._handleStateChange.bind(this, 'waiting'));
+        socketSvc.on('judging', this._handleStateChange.bind(this, 'judging'));
+
         socketSvc.on('player joined', this._handlePlayerJoined.bind(this));
     }; // end _bindEventHandlers
+
+    Game.prototype._handleStateChange = function(state)
+    {
+        console.log('state changed:', state);
+        this.gameState.state = state;
+    }; // end _handleStateChange
 
     Game.prototype._handlePlayerJoined = function(session)
     {
         console.log('player joined:', session);
         this.gameState.players[session.client.id] = session;
-    }; // end _handle PlayerJoined
+    }; // end _handlePlayerJoined
 
     // -----------------------------------------------------------------------------------------------------------------
     // Functions
     // -----------------------------------------------------------------------------------------------------------------
+
+    Game.prototype.isPlayer = function()
+    {
+        return !!this.gameState.players[clientSvc.id];
+    }; // end isPlayer
 
     Game.prototype.hasSubmitted = function(playerID)
     {
@@ -61,6 +78,7 @@ function GameFactory(socketSvc)
 
 angular.module('card-crimes.services').factory('GameFactory', [
     'SocketService',
+    'ClientService',
     GameFactory
 ]);
 

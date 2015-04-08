@@ -4,7 +4,7 @@
 // @module new.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function NewGameController($scope, $http, $location, Promise, _, socket, client, deckSvc, gameSvc)
+function NewGameController($scope, $http, $location, _, deckSvc, socketSvc)
 {
     $scope.newGame = {
         name: '',
@@ -32,10 +32,6 @@ function NewGameController($scope, $http, $location, Promise, _, socket, client,
     });
 
     // -----------------------------------------------------------------------------------------------------------------
-
-    $scope.createGame = function()
-    {
-    }; // end createGame
 
     $scope.startCreation = function()
     {
@@ -83,6 +79,7 @@ function NewGameController($scope, $http, $location, Promise, _, socket, client,
             .success(function(game)
             {
                 console.log('game:', game);
+                socketSvc.emit('join game', game.id);
                 $location.path('/game/' + game.id);
             });
     }; // end finishSetup
@@ -120,12 +117,9 @@ angular.module('card-crimes.controllers').controller('NewGameController', [
     '$scope',
     '$http',
     '$location',
-    '$q',
     'lodash',
-    'SocketService',
-    'ClientService',
     'DeckService',
-    'GameService',
+    'SocketService',
     NewGameController
 ]);
 

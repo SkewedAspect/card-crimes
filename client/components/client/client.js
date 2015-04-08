@@ -14,6 +14,7 @@ function ClientServiceFactory(socketSvc)
     } // end ClientService
 
     ClientService.prototype = {
+        get id(){ return this.session.id; },
         get name(){ return this.session.name; }
     }; // end prototype
 

@@ -27,7 +27,7 @@
                 </div>
                 <div id="modal-nav" class="col-xs-6">
                     <div class="btn-group">
-                        <button ng-if="!isPlayer" class="btn btn-primary" ng-click="joinAsPlayer()"><i class="fa fa-share"></i> Join</button>
+                        <button ng-if="!game.isPlayer()" class="btn btn-primary" ng-click="join()"><i class="fa fa-share"></i> Join</button>
                     </div>
                     <a href="/" class="btn btn-danger"><i class="fa fa-sign-out"></i> Leave</a>
                 </div>
@@ -50,7 +50,7 @@
         </h1>
         <h3 class="text-right text-muted"><i>--{{ winningResponse.player.name }}</i></h3>
     </div>
-    <div ng-if="isPlayer" class="modal-footer">
+    <div ng-if="game.isPlayer()" class="modal-footer">
         <button class="btn btn-primary" ng-click="$close()"><i class="fa fa-sign-out"></i> Continue</button>
     </div>
 </script>

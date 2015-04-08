@@ -4,7 +4,7 @@
 // @module summary.js
 // ---------------------------------------------------------------------------------------------------------------------
 
-function GameSummaryFactory($location, _, gameSvc)
+function GameSummaryFactory($location, _, socketSvc)
 {
     function GameSummaryController($scope)
     {
@@ -15,11 +15,8 @@ function GameSummaryFactory($location, _, gameSvc)
 
         $scope.join = function(isPlayer)
         {
-            gameSvc.joinGame(isPlayer, $scope.game.id)
-                .then(function()
-                {
-                    $location.path('/game/' + $scope.game.id);
-                });
+            socketSvc.emit('join game', $scope.game.id);
+            $location.path('/game/' + $scope.game.id);
         }; // end join
     } // end GameSummaryController
 
@@ -39,7 +36,7 @@ function GameSummaryFactory($location, _, gameSvc)
 angular.module('card-crimes.directives').directive('gameSummary', [
     '$location',
     'lodash',
-    'GameService',
+    'SocketService',
     GameSummaryFactory
 ]);
 
